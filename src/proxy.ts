@@ -21,8 +21,10 @@ export async function proxy(request: NextRequest) {
   const session = await auth();
 
   if (!session) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", request.url);
+    const baseUrl = process.env.AUTH_URL || request.nextUrl.origin;
+    const loginUrl = new URL("/login", baseUrl);
+    const callbackUrl = new URL(request.nextUrl.pathname + request.nextUrl.search, baseUrl);
+    loginUrl.searchParams.set("callbackUrl", callbackUrl.toString());
     return NextResponse.redirect(loginUrl);
   }
 
