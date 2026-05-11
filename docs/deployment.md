@@ -48,17 +48,16 @@ sudo systemctl enable postgresql
 
 # Create database and user
 sudo -u postgres psql <<EOF
-CREATE USER bss_sig_user WITH PASSWORD 'bss-sig@2026';
-CREATE DATABASE "bss-sig" OWNER bss_sig_user;
-GRANT ALL PRIVILEGES ON DATABASE "bss-sig" TO bss_sig_user;
-ALTER USER bss_sig_user CREATEDB;
+CREATE USER bsssig WITH PASSWORD 'your_secure_password';
+CREATE DATABASE bsssig OWNER bsssig;
+GRANT ALL PRIVILEGES ON DATABASE bsssig TO bsssig;
 EOF
 ```
 
 Your `DATABASE_URL` will be:
 
 ```
-postgresql://bss_sig_user:bss-sig@2026@localhost:5432/bss-sig
+postgresql://bsssig:your_secure_password@localhost:5432/bsssig
 ```
 
 ---
@@ -67,8 +66,8 @@ postgresql://bss_sig_user:bss-sig@2026@localhost:5432/bss-sig
 
 ```bash
 # Create app directory
-sudo mkdir -p /var/www/bss-www-sig
-cd /var/www/bss-www-sig
+sudo mkdir -p /opt/bss-sig
+cd /opt/bss-sig
 
 # Clone the repo (or copy files)
 git clone <YOUR_REPO_URL> .
@@ -141,11 +140,8 @@ The app should be accessible at `http://localhost:3000/bss-sig`. Press `Ctrl+C` 
 ```bash
 sudo npm install -g pm2
 
-# Run from the app directory
-cd /var/www/bss-www-sig
-
-# Start the app on port 3000 (Nginx proxies 8123 → 3000)
-PORT=3000 pm2 start npm --name "bss-sig" -- start
+# Start the app on port 8123
+PORT=8123 pm2 start npm --name "bss-sig" -- start
 
 # Save the process list and enable startup on boot
 pm2 save
@@ -165,36 +161,137 @@ pm2 delete bss-sig  # Remove from PM2
 
 ---
 
-## 10. Nginx Setup (blackstone.simtechitsolutions.in)
+## 10. SSL Setup with Nginx (Reverse Proxy)
 
-The subdomain, SSL, and Nginx config have all been set up by the server admin. The `default` config at `/etc/nginx/sites-available/default` already handles:
-
-- SSL on port 8123 (self-signed cert)
-- Proxying `/bss-sig/` → `http://localhost:3000`
-
-The only thing required is to remove the stub config file that causes Nginx errors:
+### Install Nginx
 
 ```bash
-sudo rm /etc/nginx/sites-enabled/blackstone.simtechitsolutions.in
-sudo nginx -t
-sudo systemctl reload nginx
+sudo apt-get install -y nginx
 ```
 
-Once the app is running on port 3000 via PM2, it will be accessible at:
+### Create Self-Signed SSL Certificate (Staging)
 
-```
-https://blackstone.simtechitsolutions.in:8123/bss-sig
+For staging/internal use, a self-signed certificate is sufficient. This enables HTTPS without a domain name.
+
+```bash
+sudo mkdir -p /etc/nginx/ssl
+
+# Generate a self-signed cert valid for 365 days
+# Replace the IP with your staging server IP
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /etc/nginx/ssl/bss-sig.key \
+  -out /etc/nginx/ssl/bss-sig.crt \
+  -subj "/C=IN/ST=State/L=City/O=Blackstone Shipping/CN=103.252.116.34" \
+  -addext "subjectAltName=IP:103.252.116.34"
 ```
 
-No further Nginx changes are needed.
+> The `-addext "subjectAltName=IP:..."` is important — modern browsers reject certs without a SAN matching the address.
+
+#### Verify the Certificate
+
+```bash
+openssl x509 -in /etc/nginx/ssl/bss-sig.crt -text -noout | grep -A1 "Subject Alternative"
+```
+
+#### Trust the Self-Signed Certificate
+
+Browsers and Outlook will show security warnings with self-signed certs. To suppress them:
+
+**On the server (for curl/wget testing):**
+
+```bash
+sudo cp /etc/nginx/ssl/bss-sig.crt /usr/local/share/ca-certificates/bss-sig.crt
+sudo update-ca-certificates
+```
+
+**On Windows (for browser/Outlook testing):**
+
+1. Download the `.crt` file from the server: `scp user@103.252.116.34:/etc/nginx/ssl/bss-sig.crt .`
+2. Double-click the `.crt` file → **Install Certificate**
+3. Choose **Local Machine** → **Place all certificates in the following store** → **Trusted Root Certification Authorities**
+4. Click **Finish** and restart the browser/Outlook
+
+**On Mac:**
+
+1. Download the `.crt` file
+2. Double-click → opens Keychain Access
+3. Find the cert → **Get Info** → **Trust** → set **Always Trust**
+
+> **From Microsoft's official docs (Server requirements section):**
+>
+> *"Self-signed certificates can be used for development and testing, so long as the certificate is trusted on the local machine."*
+>
+> *"If you plan to run your add-in in Office on the web or publish your add-in to Microsoft Marketplace, it must be SSL-secured."*
+>
+> **Source:** https://learn.microsoft.com/en-us/office/dev/add-ins/concepts/requirements-for-running-office-add-ins
+>
+> **Our recommendation:** For production/org-wide deployment, use a CA-signed certificate (e.g., Let's Encrypt) with a proper domain name.
+
+#### Production: Use Let's Encrypt (requires domain name)
+
+```bash
+sudo apt-get install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d yourdomain.com
+```
+
+### Configure Nginx
+
+```bash
+sudo nano /etc/nginx/sites-available/bss-sig
+```
+
+Paste:
+
+```nginx
+server {
+    listen 8123 ssl;
+    server_name _;
+
+    ssl_certificate /etc/nginx/ssl/bss-sig.crt;
+    ssl_certificate_key /etc/nginx/ssl/bss-sig.key;
+
+    location /bss-sig {
+        proxy_pass http://127.0.0.1:3000/bss-sig;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+Enable the site:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/bss-sig /etc/nginx/sites-enabled/
+sudo nginx -t          # Test config
+sudo systemctl restart nginx
+sudo systemctl enable nginx
+```
+
+Now the app is accessible at `https://<IP>:8123/bss-sig`.
+
+> **Note:** If using PM2 with Nginx, set PM2 to run on port 3000 (internal) and Nginx handles SSL on port 8123 (external).
+
+Update PM2 accordingly:
+
+```bash
+pm2 delete bss-sig
+PORT=3000 pm2 start npm --name "bss-sig" -- start
+pm2 save
+```
 
 ---
 
 ## 11. Firewall
 
 ```bash
+# Allow SSH and app port
 sudo ufw allow 22
-sudo ufw allow 80
 sudo ufw allow 8123
 sudo ufw enable
 ```
@@ -206,10 +303,10 @@ sudo ufw enable
 Check these URLs are accessible from a browser:
 
 ```
-https://blackstone.simtechitsolutions.in:8123/bss-sig/login
-https://blackstone.simtechitsolutions.in:8123/bss-sig/commands.html
-https://blackstone.simtechitsolutions.in:8123/bss-sig/taskpane.html
-https://blackstone.simtechitsolutions.in:8123/bss-sig/icon-80.png
+https://<YOUR_IP>:8123/bss-sig/login
+https://<YOUR_IP>:8123/bss-sig/commands.html
+https://<YOUR_IP>:8123/bss-sig/taskpane.html
+https://<YOUR_IP>:8123/bss-sig/icon-80.png
 ```
 
 ---
@@ -228,7 +325,7 @@ Once all URLs are accessible:
 ## Updating the App
 
 ```bash
-cd /var/www/bss-www-sig
+cd /opt/bss-sig
 
 # Pull latest code
 git pull
@@ -252,7 +349,7 @@ pm2 restart bss-sig
 
 | Issue | Fix |
 |---|---|
-| `EACCES` permission error | Run with `sudo` or fix ownership: `sudo chown -R $USER /var/www/bss-www-sig` |
+| `EACCES` permission error | Run with `sudo` or fix ownership: `sudo chown -R $USER /opt/bss-sig` |
 | Port already in use | Check: `sudo lsof -i :3000` and kill the process |
 | Prisma migration fails | Check `DATABASE_URL` in `.env` and that PostgreSQL is running |
 | SSL errors in browser | Expected for self-signed certs — click "Advanced" → "Proceed" |

@@ -17,7 +17,7 @@ export default async function LoginPage() {
   const session = await auth();
 
   if (session) {
-    redirect("/bss-sig");
+    redirect("/");
   }
 
   return (
