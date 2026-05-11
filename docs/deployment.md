@@ -51,6 +51,7 @@ sudo -u postgres psql <<EOF
 CREATE USER bss_sig_user WITH PASSWORD 'bss-sig@2026';
 CREATE DATABASE "bss-sig" OWNER bss_sig_user;
 GRANT ALL PRIVILEGES ON DATABASE "bss-sig" TO bss_sig_user;
+ALTER USER bss_sig_user CREATEDB;
 EOF
 ```
 
@@ -140,8 +141,11 @@ The app should be accessible at `http://localhost:3000/bss-sig`. Press `Ctrl+C` 
 ```bash
 sudo npm install -g pm2
 
-# Start the app on port 8123
-PORT=8123 pm2 start npm --name "bss-sig" -- start
+# Run from the app directory
+cd /var/www/bss-www-sig
+
+# Start the app on port 3000 (Nginx proxies 8123 → 3000)
+PORT=3000 pm2 start npm --name "bss-sig" -- start
 
 # Save the process list and enable startup on boot
 pm2 save
@@ -161,55 +165,28 @@ pm2 delete bss-sig  # Remove from PM2
 
 ---
 
-## 10. SSL + Nginx Setup (blackstone.simtechitsolutions.in)
+## 10. Nginx Setup (blackstone.simtechitsolutions.in)
 
-The subdomain `blackstone.simtechitsolutions.in` and SSL have been configured by the server admin. The Nginx config file already exists at `/etc/nginx/sites-available/blackstone.simtechitsolutions.in` and is linked in `sites-enabled`. You only need to update its contents.
+The subdomain, SSL, and Nginx config have all been set up by the server admin. The `default` config at `/etc/nginx/sites-available/default` already handles:
 
----
+- SSL on port 8123 (self-signed cert)
+- Proxying `/bss-sig/` → `http://localhost:3000`
 
-### Step 1: Open Firewall Port
-
-```bash
-sudo ufw allow 8123
-sudo ufw status
-```
-
----
-
-### Step 2: Add the Proxy Block to the Existing Nginx Config
-
-The SSL is already configured by the server admin. Just open the existing config and add the `location /bss-sig` block inside the existing `server` block:
+The only thing required is to remove the stub config file that causes Nginx errors:
 
 ```bash
-sudo nano /etc/nginx/sites-available/blackstone.simtechitsolutions.in
-```
-
-Add this inside the existing `server { ... }` block (leave all SSL lines untouched):
-
-```nginx
-location /bss-sig {
-    proxy_pass http://127.0.0.1:3000;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_cache_bypass $http_upgrade;
-}
-```
-
----
-
-### Step 3: Test and Reload Nginx
-
-```bash
+sudo rm /etc/nginx/sites-enabled/blackstone.simtechitsolutions.in
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-The app will be accessible at `https://blackstone.simtechitsolutions.in:8123/bss-sig`.
+Once the app is running on port 3000 via PM2, it will be accessible at:
+
+```
+https://blackstone.simtechitsolutions.in:8123/bss-sig
+```
+
+No further Nginx changes are needed.
 
 ---
 
