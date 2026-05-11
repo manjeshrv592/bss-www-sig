@@ -48,16 +48,16 @@ sudo systemctl enable postgresql
 
 # Create database and user
 sudo -u postgres psql <<EOF
-CREATE USER bsssig WITH PASSWORD 'your_secure_password';
-CREATE DATABASE bsssig OWNER bsssig;
-GRANT ALL PRIVILEGES ON DATABASE bsssig TO bsssig;
+CREATE USER bss_sig_user WITH PASSWORD 'bss-sig@2026';
+CREATE DATABASE "bss-sig" OWNER bss_sig_user;
+GRANT ALL PRIVILEGES ON DATABASE "bss-sig" TO bss_sig_user;
 EOF
 ```
 
 Your `DATABASE_URL` will be:
 
 ```
-postgresql://bsssig:your_secure_password@localhost:5432/bsssig
+postgresql://bss_sig_user:bss-sig@2026@localhost:5432/bss-sig
 ```
 
 ---
