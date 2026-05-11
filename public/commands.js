@@ -1,7 +1,6 @@
 /* global Office */
 
-var BASE_PATH = "/bss-sig";
-var API_URL = window.location.origin + BASE_PATH + "/api/signature";
+var API_URL = window.location.origin + "/api/signature";
 
 Office.onReady(function () {
   // Commands are ready

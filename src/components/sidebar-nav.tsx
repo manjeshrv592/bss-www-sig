@@ -33,9 +33,8 @@ export function SidebarNav() {
   const pathname = usePathname();
 
   const isActive = (href: string) => {
-    const normalizedPath = pathname.replace(/^\/bss-sig/, "") || "/";
-    if (href === "/") return normalizedPath === "/";
-    return normalizedPath.startsWith(href);
+    if (href === "/") return pathname === "/";
+    return pathname.startsWith(href);
   };
 
   return (

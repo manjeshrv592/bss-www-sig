@@ -12,9 +12,9 @@
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="BSS Signature (Local)"/>
   <Description DefaultValue="Automatically applies your company email signature in Outlook."/>
-  <IconUrl DefaultValue="http://localhost:3000/bss-sig/icon-80.png"/>
-  <HighResolutionIconUrl DefaultValue="http://localhost:3000/bss-sig/icon-80.png"/>
-  <SupportUrl DefaultValue="http://localhost:3000/bss-sig"/>
+  <IconUrl DefaultValue="http://localhost:3000/icon-80.png"/>
+  <HighResolutionIconUrl DefaultValue="http://localhost:3000/icon-80.png"/>
+  <SupportUrl DefaultValue="http://localhost:3000"/>
 
   <!-- Hosts -->
   <Hosts>
@@ -32,7 +32,7 @@
   <FormSettings>
     <Form xsi:type="ItemRead">
       <DesktopSettings>
-        <SourceLocation DefaultValue="http://localhost:3000/bss-sig/taskpane.html"/>
+        <SourceLocation DefaultValue="http://localhost:3000/taskpane.html"/>
         <RequestedHeight>250</RequestedHeight>
       </DesktopSettings>
     </Form>
@@ -123,13 +123,13 @@
 
       <Resources>
         <bt:Images>
-          <bt:Image id="icon16" DefaultValue="http://localhost:3000/bss-sig/icon-80.png"/>
-          <bt:Image id="icon32" DefaultValue="http://localhost:3000/bss-sig/icon-80.png"/>
-          <bt:Image id="icon80" DefaultValue="http://localhost:3000/bss-sig/icon-80.png"/>
+          <bt:Image id="icon16" DefaultValue="http://localhost:3000/icon-80.png"/>
+          <bt:Image id="icon32" DefaultValue="http://localhost:3000/icon-80.png"/>
+          <bt:Image id="icon80" DefaultValue="http://localhost:3000/icon-80.png"/>
         </bt:Images>
         <bt:Urls>
-          <bt:Url id="commandsUrl" DefaultValue="http://localhost:3000/bss-sig/commands.html"/>
-          <bt:Url id="taskpaneUrl" DefaultValue="http://localhost:3000/bss-sig/taskpane.html"/>
+          <bt:Url id="commandsUrl" DefaultValue="http://localhost:3000/commands.html"/>
+          <bt:Url id="taskpaneUrl" DefaultValue="http://localhost:3000/taskpane.html"/>
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="groupLabel" DefaultValue="BSS Signature"/>

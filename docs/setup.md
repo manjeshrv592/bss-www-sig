@@ -11,7 +11,7 @@ This guide walks through configuring Microsoft Azure for the BSS Signature app. 
 3. Fill in:
    - **Name**: `BSS Signature`
    - **Supported account types**: Accounts in this organizational directory only (Single tenant)
-   - **Redirect URI**: Web → `https://<YOUR_DOMAIN>/bss-sig/api/auth/callback/microsoft-entra-id`
+   - **Redirect URI**: Web → `https://<YOUR_DOMAIN>/api/auth/callback/microsoft-entra-id`
 4. Click **Register**
 5. Note down:
    - **Application (client) ID** → used as `AZURE_AD_CLIENT_ID`
@@ -37,9 +37,9 @@ Go to **Authentication** → **Web** → **Redirect URIs**
 Add all environments that apply:
 
 ```
-http://localhost:3000/bss-sig/api/auth/callback/microsoft-entra-id
-https://<STAGING_URL>/bss-sig/api/auth/callback/microsoft-entra-id
-https://<PRODUCTION_URL>/bss-sig/api/auth/callback/microsoft-entra-id
+http://localhost:3000/api/auth/callback/microsoft-entra-id
+https://<STAGING_URL>/api/auth/callback/microsoft-entra-id
+https://<PRODUCTION_URL>/api/auth/callback/microsoft-entra-id
 ```
 
 Under **Implicit grant and hybrid flows**:
@@ -155,7 +155,7 @@ AZURE_AD_CLIENT_SECRET=<Client secret value from step 2>
 
 # Auth
 AUTH_SECRET=<random 32+ character string - generate with: openssl rand -base64 32>
-AUTH_URL=https://<YOUR_DOMAIN>/bss-sig
+AUTH_URL=https://<YOUR_DOMAIN>
 
 # Admin access
 ADMIN_EMAILS=admin1@company.com,admin2@company.com
@@ -169,9 +169,9 @@ DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<database>
 ## 8. Deploy the Outlook Add-in Manifest
 
 1. Host the app and verify these URLs are accessible:
-   - `https://<YOUR_DOMAIN>/bss-sig/commands.html`
-   - `https://<YOUR_DOMAIN>/bss-sig/taskpane.html`
-   - `https://<YOUR_DOMAIN>/bss-sig/icon-80.png`
+   - `https://<YOUR_DOMAIN>/commands.html`
+   - `https://<YOUR_DOMAIN>/taskpane.html`
+   - `https://<YOUR_DOMAIN>/icon-80.png`
 2. Update the manifest file (`public/staging/manifest.xml` or `public/production/manifest.xml`):
    - Replace all URLs with your domain
    - Replace the `<Id>` in `<WebApplicationInfo>` with your `AZURE_AD_CLIENT_ID`

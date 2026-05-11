@@ -2,9 +2,8 @@
 
 let cachedSignatureHtml = null;
 
-// Derive API base from the current page origin + basePath
-const BASE_PATH = "/bss-sig";
-const API_URL = window.location.origin + BASE_PATH + "/api/signature";
+// Derive API base from the current page origin
+const API_URL = window.location.origin + "/api/signature";
 
 Office.onReady(function (info) {
   if (info.host === Office.HostType.Outlook) {

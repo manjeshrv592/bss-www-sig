@@ -35,5 +35,3 @@
 ### Key Fixes
 - Prisma 7.8 requires `@prisma/adapter-pg` driver adapter
 - Import from `@/generated/prisma/client` (no barrel index.ts in generated dir)
-- Sidebar links use basePath-relative hrefs (Next.js Link auto-prepends basePath)
-- `redirect()` from `next/navigation` auto-prepends basePath; `signIn`/`signOut` redirectTo needs explicit `/bss-sig`

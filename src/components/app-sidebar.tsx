@@ -50,7 +50,7 @@ export async function AppSidebar() {
         <form
           action={async () => {
             "use server";
-            await signOut({ redirectTo: "/bss-sig/login" });
+            await signOut({ redirectTo: "/login" });
           }}
         >
           <Button variant="ghost" size="icon" type="submit" className="h-8 w-8">

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { CertificationList } from "./certification-list";
 import { Pagination } from "@/components/pagination";
 
-const PER_PAGE = 12;
+const PER_PAGE = 10;
 
 export default async function CertificationsPage(props: {
   searchParams: Promise<{ page?: string }>;

@@ -21,7 +21,7 @@ export const authConfig: NextAuthConfig = {
       },
     }),
   ],
-  basePath: "/bss-sig/api/auth",
+  basePath: "/api/auth",
   pages: {
     signIn: "/login",
   },

@@ -51,7 +51,6 @@ This app allows:
 
 * Setup Next.js with:
 
-  * `basePath: /bss-sig`
   * TypeScript + Tailwind + shadcn
   * Neutral dark theme (zinc/neutral)
 
@@ -62,7 +61,7 @@ This app allows:
 
 * Pages:
 
-  * `/bss-sig/login`
+  * `/login`
   * Middleware to protect routes
 
 * Setup DB:
