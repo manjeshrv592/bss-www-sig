@@ -22,7 +22,8 @@ export async function proxy(request: NextRequest) {
 
   if (!session) {
     const loginUrl = new URL("/bss-sig/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", request.url);
+    const callbackUrl = request.url.replace(/^http:\/\//, "https://");
+    loginUrl.searchParams.set("callbackUrl", callbackUrl);
     return NextResponse.redirect(loginUrl);
   }
 
