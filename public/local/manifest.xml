@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0"
+           xsi:type="MailApp">
+
+  <!-- Basic Settings -->
+  <Id>a1b2c3d4-e5f6-7890-abcd-ef1234567890</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Blackstone Shipping</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="BSS Signature (Local)"/>
+  <Description DefaultValue="Automatically applies your company email signature in Outlook."/>
+  <IconUrl DefaultValue="http://localhost:3000/bss-sig/icon-80.png"/>
+  <HighResolutionIconUrl DefaultValue="http://localhost:3000/bss-sig/icon-80.png"/>
+  <SupportUrl DefaultValue="http://localhost:3000/bss-sig"/>
+
+  <!-- Hosts -->
+  <Hosts>
+    <Host Name="Mailbox"/>
+  </Hosts>
+
+  <!-- Requirements -->
+  <Requirements>
+    <Sets>
+      <Set Name="Mailbox" MinVersion="1.1"/>
+    </Sets>
+  </Requirements>
+
+  <!-- Form Settings -->
+  <FormSettings>
+    <Form xsi:type="ItemRead">
+      <DesktopSettings>
+        <SourceLocation DefaultValue="http://localhost:3000/bss-sig/taskpane.html"/>
+        <RequestedHeight>250</RequestedHeight>
+      </DesktopSettings>
+    </Form>
+  </FormSettings>
+
+  <!-- Permissions -->
+  <Permissions>ReadWriteItem</Permissions>
+
+  <!-- Rules -->
+  <Rule xsi:type="RuleCollection" Mode="Or">
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Edit"/>
+    <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read"/>
+  </Rule>
+
+  <!-- Version Overrides -->
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.1" xsi:type="VersionOverridesV1_1">
+
+      <Requirements>
+        <bt:Sets DefaultMinVersion="1.10">
+          <bt:Set Name="Mailbox"/>
+        </bt:Sets>
+      </Requirements>
+
+      <Hosts>
+        <Host xsi:type="MailHost">
+
+          <Runtimes>
+            <Runtime resid="commandsUrl">
+              <Override type="javascript" resid="commandsUrl"/>
+            </Runtime>
+          </Runtimes>
+
+          <DesktopFormFactor>
+            <FunctionFile resid="commandsUrl"/>
+
+            <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="bssSignatureGroup">
+                  <Label resid="groupLabel"/>
+
+                  <Control xsi:type="Button" id="btnTaskpane">
+                    <Label resid="taskpaneLabel"/>
+                    <Supertip>
+                      <Title resid="taskpaneLabel"/>
+                      <Description resid="taskpaneDesc"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="icon16"/>
+                      <bt:Image size="32" resid="icon32"/>
+                      <bt:Image size="80" resid="icon80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="taskpaneUrl"/>
+                    </Action>
+                  </Control>
+
+                  <Control xsi:type="Button" id="btnRefresh">
+                    <Label resid="refreshLabel"/>
+                    <Supertip>
+                      <Title resid="refreshLabel"/>
+                      <Description resid="refreshDesc"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="icon16"/>
+                      <bt:Image size="32" resid="icon32"/>
+                      <bt:Image size="80" resid="icon80"/>
+                    </Icon>
+                    <Action xsi:type="ExecuteFunction">
+                      <FunctionName>refreshSignature</FunctionName>
+                    </Action>
+                  </Control>
+
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+
+            <ExtensionPoint xsi:type="LaunchEvent">
+              <LaunchEvents>
+                <LaunchEvent Type="OnNewMessageCompose" FunctionName="autoInsertSignature"/>
+              </LaunchEvents>
+              <SourceLocation resid="commandsUrl"/>
+            </ExtensionPoint>
+
+          </DesktopFormFactor>
+        </Host>
+      </Hosts>
+
+      <Resources>
+        <bt:Images>
+          <bt:Image id="icon16" DefaultValue="http://localhost:3000/bss-sig/icon-80.png"/>
+          <bt:Image id="icon32" DefaultValue="http://localhost:3000/bss-sig/icon-80.png"/>
+          <bt:Image id="icon80" DefaultValue="http://localhost:3000/bss-sig/icon-80.png"/>
+        </bt:Images>
+        <bt:Urls>
+          <bt:Url id="commandsUrl" DefaultValue="http://localhost:3000/bss-sig/commands.html"/>
+          <bt:Url id="taskpaneUrl" DefaultValue="http://localhost:3000/bss-sig/taskpane.html"/>
+        </bt:Urls>
+        <bt:ShortStrings>
+          <bt:String id="groupLabel" DefaultValue="BSS Signature"/>
+          <bt:String id="taskpaneLabel" DefaultValue="Signature"/>
+          <bt:String id="refreshLabel" DefaultValue="Refresh Signature"/>
+        </bt:ShortStrings>
+        <bt:LongStrings>
+          <bt:String id="taskpaneDesc" DefaultValue="Open the signature panel to preview and apply your email signature."/>
+          <bt:String id="refreshDesc" DefaultValue="Fetch and apply your latest email signature."/>
+        </bt:LongStrings>
+      </Resources>
+
+      <WebApplicationInfo>
+        <Id>__AZURE_CLIENT_ID__</Id>
+        <Resource>api://__AZURE_CLIENT_ID__</Resource>
+        <Scopes>
+          <Scope>openid</Scope>
+          <Scope>profile</Scope>
+          <Scope>access_as_user</Scope>
+        </Scopes>
+      </WebApplicationInfo>
+
+    </VersionOverrides>
+  </VersionOverrides>
+
+</OfficeApp>

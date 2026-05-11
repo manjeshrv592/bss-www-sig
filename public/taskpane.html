@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BSS Signature</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1a1a1a;
+      color: #e5e5e5;
+      padding: 16px;
+      min-height: 100vh;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #333;
+    }
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .status {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 12px;
+    }
+    .status.success { color: #22c55e; }
+    .status.error { color: #ef4444; }
+    .status.loading { color: #3b82f6; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+    }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-primary:disabled {
+      background: #1e3a5f;
+      color: #6b7280;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: #333;
+      color: #e5e5e5;
+      margin-top: 8px;
+    }
+    .btn-secondary:hover { background: #444; }
+    .preview {
+      margin-top: 16px;
+      border: 1px solid #333;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .preview-header {
+      font-size: 11px;
+      color: #999;
+      padding: 8px 12px;
+      border-bottom: 1px solid #333;
+      background: #222;
+    }
+    .preview-body {
+      background: white;
+      padding: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #6b7280;
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+      <polyline points="22,6 12,13 2,6"/>
+    </svg>
+    <h1>BSS Signature</h1>
+  </div>
+
+  <p id="status" class="status">Initializing...</p>
+
+  <button id="btnApply" class="btn btn-primary" disabled onclick="applySignature()">
+    Apply Signature
+  </button>
+  <button id="btnRefresh" class="btn btn-secondary" onclick="refreshSignature()">
+    Refresh Signature
+  </button>
+
+  <div id="previewSection" class="preview" style="display:none;">
+    <div class="preview-header">Preview</div>
+    <div id="previewBody" class="preview-body"></div>
+  </div>
+
+  <script src="taskpane.js"></script>
+</body>
+</html>

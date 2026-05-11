@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  role      String   @default("admin")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  activityLogs ActivityLog[]
+
+  @@map("users")
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  details   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("activity_log")
+}
+
+model MsUser {
+  id              String   @id @default(cuid())
+  msId            String   @unique @map("ms_id")
+  email           String   @unique
+  displayName     String?  @map("display_name")
+  givenName       String?  @map("given_name")
+  surname         String?
+  jobTitle        String?  @map("job_title")
+  department      String?
+  officeLocation  String?  @map("office_location")
+  city            String?
+  country         String?
+  companyName     String?  @map("company_name")
+  mobilePhone     String?  @map("mobile_phone")
+  businessPhones  String[] @map("business_phones")
+  userPrincipalName String @map("user_principal_name")
+  accountEnabled  Boolean  @default(true) @map("account_enabled")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  jobTitleRef JobTitle? @relation(fields: [jobTitle], references: [title])
+  overrides   UserOverride[]
+  groupMemberships MsGroupMember[]
+
+  @@index([country])
+  @@index([department])
+  @@index([jobTitle])
+  @@map("ms_users")
+}
+
+model JobTitle {
+  id    String @id @default(cuid())
+  title String @unique
+
+  users MsUser[]
+
+  @@map("job_titles")
+}
+
+model Certification {
+  id        String   @id @default(cuid())
+  name      String
+  image     String?  @db.Text
+  alt       String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("certifications")
+}
+
+model Banner {
+  id        String    @id @default(cuid())
+  name      String
+  image     String?   @db.Text
+  alt       String?
+  link      String?
+  startDate DateTime? @map("start_date")
+  endDate   DateTime? @map("end_date")
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("banners")
+}
+
+model LegalText {
+  id        String   @id @default(cuid())
+  name      String
+  content   String   @db.Text
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("legal_texts")
+}
+
+model MsGroup {
+  id          String   @id @default(cuid())
+  msId        String   @unique @map("ms_id")
+  displayName String   @map("display_name")
+  description String?
+  mailEnabled Boolean  @default(false) @map("mail_enabled")
+  securityEnabled Boolean @default(false) @map("security_enabled")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  members MsGroupMember[]
+
+  @@map("ms_groups")
+}
+
+model MsGroupMember {
+  id        String   @id @default(cuid())
+  groupId   String   @map("group_id")
+  msUserId  String   @map("ms_user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  group  MsGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  msUser MsUser  @relation(fields: [msUserId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, msUserId])
+  @@index([msUserId])
+  @@map("ms_group_members")
+}
+
+model Assignment {
+  id             String   @id @default(cuid())
+  scope          String   // "global" | "country" | "job_title" | "group"
+  scopeValue     String?  @map("scope_value") // e.g. "India", "Manager", group id
+  resourceType   String   @map("resource_type") // "certification" | "banner" | "legal_text"
+  resourceId     String   @map("resource_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([scope, scopeValue, resourceType, resourceId])
+  @@index([scope, scopeValue])
+  @@index([resourceType, resourceId])
+  @@map("assignments")
+}
+
+model UserOverride {
+  id           String   @id @default(cuid())
+  msUserId     String   @map("ms_user_id")
+  resourceType String   @map("resource_type") // "certification" | "banner" | "legal_text"
+  resourceId   String   @map("resource_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  msUser MsUser @relation(fields: [msUserId], references: [id], onDelete: Cascade)
+
+  @@unique([msUserId, resourceType, resourceId])
+  @@index([msUserId])
+  @@map("user_overrides")
+}
+
+model CountryConfig {
+  id          String   @id @default(cuid())
+  country     String   @unique
+  companyName String   @map("company_name")
+  website     String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("country_config")
+}
+
+model SyncMeta {
+  id        String   @id @default(cuid())
+  syncType  String   @unique @map("sync_type")
+  lastSync  DateTime? @map("last_sync")
+  status    String   @default("idle")
+  details   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("sync_meta")
+}

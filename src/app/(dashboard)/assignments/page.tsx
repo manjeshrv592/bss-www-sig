@@ -1,0 +1,64 @@
+import { prisma } from "@/lib/prisma";
+import { AssignmentManager } from "./assignment-manager";
+
+export default async function AssignmentsPage() {
+  const [assignments, certifications, banners, legalTexts, countries, jobTitles, groups] =
+    await Promise.all([
+      prisma.assignment.findMany({ orderBy: { createdAt: "desc" } }),
+      prisma.certification.findMany({
+        where: { isActive: true },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+      prisma.banner.findMany({
+        where: { isActive: true },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+      prisma.legalText.findMany({
+        where: { isActive: true },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      }),
+      prisma.msUser.findMany({
+        where: { country: { not: null } },
+        select: { country: true },
+        distinct: ["country"],
+        orderBy: { country: "asc" },
+      }),
+      prisma.jobTitle.findMany({
+        select: { title: true },
+        orderBy: { title: "asc" },
+      }),
+      prisma.msGroup.findMany({
+        select: { id: true, displayName: true },
+        orderBy: { displayName: "asc" },
+      }),
+    ]);
+
+  const countryList = countries
+    .map((c) => c.country)
+    .filter((c): c is string => c !== null);
+  const jobTitleList = jobTitles.map((j) => j.title);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Assignments</h1>
+        <p className="text-sm text-muted-foreground">
+          Assign resources to users by scope. Rules use OR logic with deduplication.
+        </p>
+      </div>
+
+      <AssignmentManager
+        assignments={assignments}
+        certifications={certifications}
+        banners={banners}
+        legalTexts={legalTexts}
+        countries={countryList}
+        jobTitles={jobTitleList}
+        groups={groups}
+      />
+    </div>
+  );
+}
