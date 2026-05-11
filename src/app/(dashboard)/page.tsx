@@ -1,111 +1,59 @@
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { getRecentActivity } from "@/lib/activity";
-import Link from "next/link";
+import { signIn } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Users, Award, RefreshCw, ArrowRight, Activity } from "lucide-react";
+
+function MicrosoftLogo() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+    </svg>
+  );
+}
 
 export default async function DashboardPage() {
-  const session = await auth();
-
-  const [syncMeta, recentActivity, userCount, certCount, bannerCount, legalCount] =
-    await Promise.all([
-      prisma.syncMeta.findUnique({ where: { syncType: "users" } }),
-      getRecentActivity(5),
-      prisma.msUser.count(),
-      prisma.certification.count(),
-      prisma.banner.count(),
-      prisma.legalText.count(),
-    ]);
-
-  const resourceCount = certCount + bannerCount + legalCount;
-
-  const lastSyncLabel = syncMeta?.lastSync
-    ? new Date(syncMeta.lastSync).toLocaleString()
-    : "Never";
-
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Welcome back, {session?.user?.name?.split(" ")[0] ?? "Admin"}
-        </p>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{userCount}</p>
-            <p className="text-xs text-muted-foreground">Synced from Microsoft</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Resources</CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{resourceCount}</p>
-            <p className="text-xs text-muted-foreground">{certCount} certs, {bannerCount} banners, {legalCount} legal</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Last Sync</CardTitle>
-            <RefreshCw className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-lg font-semibold">{lastSyncLabel}</p>
-            <p className="text-xs text-muted-foreground">Microsoft Graph sync</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-base font-medium">Recent Activity</CardTitle>
-            <CardDescription>Latest actions performed by admins</CardDescription>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-[380px] shadow-lg border-border/60">
+        <CardHeader className="items-center text-center pb-2">
+          <div className="space-y-1">
+            <CardTitle className="text-xl font-semibold tracking-tight">
+              BSS Signature Manager
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Email signature management for Blackstone Shipping
+            </CardDescription>
           </div>
-          <Link href="/activity">
-            <Button variant="ghost" size="sm" className="gap-1 text-xs">
-              View all
-              <ArrowRight className="h-3 w-3" />
-            </Button>
-          </Link>
         </CardHeader>
-        <CardContent>
-          {recentActivity.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Activity className="h-8 w-8 text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground">No activity yet</p>
+        <CardContent className="space-y-4 pt-4">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border/40" />
             </div>
-          ) : (
-            <div className="space-y-4">
-              {recentActivity.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-center justify-between border-b border-border/40 pb-3 last:border-0 last:pb-0"
-                >
-                  <div className="space-y-0.5">
-                    <p className="text-sm">{activity.action}</p>
-                    <p className="text-xs text-muted-foreground">
-                      by {activity.user?.name ?? activity.user?.email ?? "System"}
-                    </p>
-                  </div>
-                  <time className="text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(activity.createdAt).toLocaleString()}
-                  </time>
-                </div>
-              ))}
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-card px-3 text-muted-foreground">
+                sign in to continue
+              </span>
             </div>
-          )}
+          </div>
+          <form
+            action={async () => {
+              "use server";
+              await signIn("microsoft-entra-id", { redirectTo: "/bss-sig" });
+            }}
+          >
+            <button
+              type="submit"
+              className="w-full flex items-center justify-center gap-3 rounded-md bg-[#2f2f2f] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#404040] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <MicrosoftLogo />
+              Sign in with Microsoft
+            </button>
+          </form>
+          <p className="text-center text-[11px] text-muted-foreground/70 pt-1">
+            Only authorized administrators can access this app.
+          </p>
         </CardContent>
       </Card>
     </div>
