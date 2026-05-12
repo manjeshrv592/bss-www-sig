@@ -6,31 +6,41 @@ import { generateSignatureHtml } from "@/lib/signature-template";
 
 export async function GET(request: NextRequest) {
   try {
-    // 1. Verify Azure token
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Missing or invalid Authorization header" },
-        { status: 401 }
-      );
-    }
+    // TEMPORARY: SSO disabled for debugging. Remove this block to re-enable.
+    const SKIP_AUTH = process.env.SKIP_SIGNATURE_AUTH === "true";
 
-    const token = authHeader.slice(7);
-    let tokenPayload;
-    try {
-      tokenPayload = await verifyOfficeToken(token);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Token verification failed";
-      return NextResponse.json({ error: message }, { status: 401 });
-    }
-
-    // 2. Get email from query param or from token
     const { searchParams } = new URL(request.url);
-    const email =
-      searchParams.get("email")?.toLowerCase() ??
-      tokenPayload.preferred_username?.toLowerCase() ??
-      tokenPayload.upn?.toLowerCase() ??
-      tokenPayload.email?.toLowerCase();
+    let email: string | undefined;
+
+    if (SKIP_AUTH) {
+      // No auth — just use email from query param
+      email = searchParams.get("email")?.toLowerCase();
+    } else {
+      // 1. Verify Azure token
+      const authHeader = request.headers.get("authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return NextResponse.json(
+          { error: "Missing or invalid Authorization header" },
+          { status: 401 }
+        );
+      }
+
+      const token = authHeader.slice(7);
+      let tokenPayload;
+      try {
+        tokenPayload = await verifyOfficeToken(token);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Token verification failed";
+        return NextResponse.json({ error: message }, { status: 401 });
+      }
+
+      // Get email from query param or from token
+      email =
+        searchParams.get("email")?.toLowerCase() ??
+        tokenPayload.preferred_username?.toLowerCase() ??
+        tokenPayload.upn?.toLowerCase() ??
+        tokenPayload.email?.toLowerCase();
+    }
 
     if (!email) {
       return NextResponse.json(

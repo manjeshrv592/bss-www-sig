@@ -24,26 +24,24 @@ function setButtonState(enabled) {
   document.getElementById("btnApply").disabled = !enabled;
 }
 
-async function getToken() {
-  try {
-    var token = await Office.auth.getAccessToken({ allowSignInPrompt: true });
-    return token;
-  } catch (err) {
-    console.error("SSO token error:", err);
-    throw new Error("Could not get access token. Error: " + (err.message || err.code || err));
-  }
-}
+// TEMPORARY: Set to true to skip SSO for debugging
+var SKIP_AUTH = true;
 
 async function fetchSignature() {
   try {
     setButtonState(false);
-    var token = await getToken();
 
     // Get user email from mailbox
     var email = Office.context.mailbox.userProfile.emailAddress;
+    var headers = {};
+
+    if (!SKIP_AUTH) {
+      var token = await Office.auth.getAccessToken({ allowSignInPrompt: true });
+      headers["Authorization"] = "Bearer " + token;
+    }
 
     var response = await fetch(API_URL + "?email=" + encodeURIComponent(email), {
-      headers: { "Authorization": "Bearer " + token }
+      headers: headers
     });
 
     if (!response.ok) {

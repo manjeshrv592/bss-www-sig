@@ -13,18 +13,33 @@ Office.onReady(function (info) {
 
 var API_URL = window.location.origin + "/api/signature";
 
-// NOTE: Function commands (ribbon ExecuteFunction) CANNOT show sign-in prompts.
-// allowSignInPrompt must always be false here. Use the taskpane to sign in first.
-function getToken() {
+// TEMPORARY: Set to true to skip SSO for debugging
+var SKIP_AUTH = true;
+
+function fetchSignatureHtml(email) {
+  var headers = {};
+  
+  if (SKIP_AUTH) {
+    // No auth, just fetch
+    return fetch(API_URL + "?email=" + encodeURIComponent(email), { headers: headers })
+      .then(function (response) {
+        if (!response.ok) {
+          return response.json().catch(function () { return {}; }).then(function (data) {
+            throw new Error(data.error || "Server returned " + response.status);
+          });
+        }
+        return response.text();
+      });
+  }
+  
+  // With SSO
   return Office.auth.getAccessToken({
     allowSignInPrompt: false,
     allowConsentPrompt: false
-  });
-}
-
-function fetchSignatureHtml(email, token) {
-  return fetch(API_URL + "?email=" + encodeURIComponent(email), {
-    headers: { "Authorization": "Bearer " + token }
+  }).then(function (token) {
+    return fetch(API_URL + "?email=" + encodeURIComponent(email), {
+      headers: { "Authorization": "Bearer " + token }
+    });
   }).then(function (response) {
     if (!response.ok) {
       return response.json().catch(function () { return {}; }).then(function (data) {
@@ -64,11 +79,7 @@ function continueWithEmail(userEmail, item, event, isAuto) {
     return;
   }
 
-  getToken()
-    .then(function (token) {
-      console.log("SSO token obtained");
-      return fetchSignatureHtml(cleanEmail, token);
-    })
+  fetchSignatureHtml(cleanEmail)
     .then(function (html) {
       if (isAuto) {
         item.body.getAsync(Office.CoercionType.Html, function (bodyResult) {
