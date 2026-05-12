@@ -6,7 +6,7 @@
            xsi:type="MailApp">
 
   <!-- Basic Settings -->
-  <Id>a1b2c3d4-e5f6-7890-abcd-ef1234567890</Id>
+  <Id>b94f9d12-3e76-4c95-8b01-2a73f5c4e8d1</Id>
   <Version>1.0.0.0</Version>
   <ProviderName>Blackstone Shipping</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
@@ -143,8 +143,8 @@
       </Resources>
 
       <WebApplicationInfo>
-        <Id>__AZURE_CLIENT_ID__</Id>
-        <Resource>api://__AZURE_CLIENT_ID__</Resource>
+        <Id>80c4e4bb-8b7f-4a99-8364-ee587b08670d</Id>
+        <Resource>api://blackstone.simtechitsolutions.in/80c4e4bb-8b7f-4a99-8364-ee587b08670d</Resource>
         <Scopes>
           <Scope>openid</Scope>
           <Scope>profile</Scope>

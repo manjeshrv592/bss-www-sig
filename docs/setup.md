@@ -12,6 +12,8 @@ This guide walks through configuring Microsoft Azure for the BSS Signature app. 
    - **Name**: `BSS Signature`
    - **Supported account types**: Accounts in this organizational directory only (Single tenant)
    - **Redirect URI**: Web → `https://<YOUR_DOMAIN>/api/auth/callback/microsoft-entra-id`
+<!-- https://blackstone.simtechitsolutions.in:8123/api/auth/callback/microsoft-entra-id -->
+
 4. Click **Register**
 5. Note down:
    - **Application (client) ID** → used as `AZURE_AD_CLIENT_ID`
@@ -41,6 +43,7 @@ http://localhost:3000/api/auth/callback/microsoft-entra-id
 https://<STAGING_URL>/api/auth/callback/microsoft-entra-id
 https://<PRODUCTION_URL>/api/auth/callback/microsoft-entra-id
 ```
+<!-- https://blackstone.simtechitsolutions.in:8123/api/auth/callback/microsoft-entra-id -->
 
 Under **Implicit grant and hybrid flows**:
 - ✅ ID tokens
@@ -90,13 +93,17 @@ Go to **Expose an API**
 
 ### Application ID URI
 
-Click **Set** and use the default:
+You need **two** Application ID URIs — one per deployment domain. Click **Add a scope** to configure:
 
 ```
-api://<APPLICATION_CLIENT_ID>
+api://<YOUR_DOMAIN>/<APPLICATION_CLIENT_ID>
 ```
 
-Example: `api://13fd73e4-b4c0-42e1-b501-487ca433221d`
+Examples:
+- Staging: `api://bss-www-sig.vercel.app/<CLIENT_ID>`
+- Production: `api://blackstone.simtechitsolutions.in/80c4e4bb-8b7f-4a99-8364-ee587b08670d`
+
+> ⚠️ The URI must match the `<Resource>` value in the manifest file exactly.
 
 ### Add a Scope
 
@@ -172,9 +179,12 @@ DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<database>
    - `https://<YOUR_DOMAIN>/commands.html`
    - `https://<YOUR_DOMAIN>/taskpane.html`
    - `https://<YOUR_DOMAIN>/icon-80.png`
-2. Update the manifest file (`public/staging/manifest.xml` or `public/production/manifest.xml`):
-   - Replace all URLs with your domain
-   - Replace the `<Id>` in `<WebApplicationInfo>` with your `AZURE_AD_CLIENT_ID`
+2. The manifest files are pre-configured per environment:
+   - `public/local/manifest.xml` → `http://localhost:3000`
+   - `public/staging/manifest.xml` → `https://bss-www-sig.vercel.app`
+   - `public/production/manifest.xml` → `https://blackstone.simtechitsolutions.in:8123`
+   - Each manifest has a **unique `<Id>`** (add-in GUID) — do not change these
+   - Update `<WebApplicationInfo><Id>` with your `AZURE_AD_CLIENT_ID` if using a new tenant
 3. Go to **Microsoft 365 Admin Center** → **Settings** → **Integrated Apps**
 4. Click **Upload custom apps** → **Office Add-in**
 5. Upload the manifest XML file
@@ -190,8 +200,9 @@ DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<database>
 - [ ] Delegated permissions: `openid`, `profile`
 - [ ] Application permissions: `User.Read.All`, `Group.Read.All`, `GroupMember.Read.All`
 - [ ] Admin consent granted
-- [ ] API exposed with `access_as_user` scope
+- [ ] API exposed with `access_as_user` scope — URI format: `api://<domain>/<client-id>`
 - [ ] 6 Office client applications authorized
 - [ ] Optional claims (`email`, `preferred_username`) added
-- [ ] `.env` configured on server
-- [ ] Manifest uploaded to Integrated Apps
+- [ ] `.env` configured on server (including `AUTH_URL=https://<YOUR_DOMAIN>`)
+- [ ] nginx configured with `X-Forwarded-Host $http_host` and `X-Forwarded-Port`
+- [ ] Manifest uploaded to Integrated Apps (use correct manifest per environment)

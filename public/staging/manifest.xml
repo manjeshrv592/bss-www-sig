@@ -6,7 +6,7 @@
            xsi:type="MailApp">
 
   <!-- Basic Settings -->
-  <Id>a1b2c3d4-e5f6-7890-abcd-ef1234567890</Id>
+  <Id>f47ac10b-58cc-4372-a567-0e02b2c3d479</Id>
   <Version>1.0.0.0</Version>
   <ProviderName>Blackstone Shipping</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
@@ -144,7 +144,7 @@
 
       <WebApplicationInfo>
         <Id>13fd73e4-b4c0-42e1-b501-487ca433221d</Id>
-        <Resource>api://13fd73e4-b4c0-42e1-b501-487ca433221d</Resource>
+        <Resource>api://bss-www-sig.vercel.app/13fd73e4-b4c0-42e1-b501-487ca433221d</Resource>
         <Scopes>
           <Scope>openid</Scope>
           <Scope>profile</Scope>
