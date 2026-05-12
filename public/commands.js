@@ -13,8 +13,7 @@ Office.onReady(function (info) {
 
 var API_URL = window.location.origin + "/api/signature";
 
-// TEMPORARY: Set to true to skip SSO for debugging
-var SKIP_AUTH = true;
+var SKIP_AUTH = false;
 
 function fetchSignatureHtml(email) {
   var headers = {};

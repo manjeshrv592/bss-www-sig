@@ -74,6 +74,22 @@
                 <Group id="bssSignatureGroup">
                   <Label resid="groupLabel"/>
 
+                  <Control xsi:type="Button" id="btnTaskpane">
+                    <Label resid="taskpaneLabel"/>
+                    <Supertip>
+                      <Title resid="taskpaneLabel"/>
+                      <Description resid="taskpaneDesc"/>
+                    </Supertip>
+                    <Icon>
+                      <bt:Image size="16" resid="icon16"/>
+                      <bt:Image size="32" resid="icon32"/>
+                      <bt:Image size="80" resid="icon80"/>
+                    </Icon>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="taskpaneUrl"/>
+                    </Action>
+                  </Control>
+
                   <Control xsi:type="Button" id="btnInsertSignature">
                     <Label resid="insertLabel"/>
                     <Supertip>
@@ -113,17 +129,28 @@
         </bt:Images>
         <bt:Urls>
           <bt:Url id="commandsUrl" DefaultValue="https://bss-www-sig.vercel.app/commands.html"/>
+          <bt:Url id="taskpaneUrl" DefaultValue="https://bss-www-sig.vercel.app/taskpane.html"/>
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="groupLabel" DefaultValue="BSS Signature"/>
+          <bt:String id="taskpaneLabel" DefaultValue="Sign In"/>
           <bt:String id="insertLabel" DefaultValue="Insert Signature"/>
         </bt:ShortStrings>
         <bt:LongStrings>
+          <bt:String id="taskpaneDesc" DefaultValue="Sign in to authenticate before inserting your signature."/>
           <bt:String id="insertDesc" DefaultValue="Insert your BSS email signature"/>
         </bt:LongStrings>
       </Resources>
 
-      <!-- WebApplicationInfo removed - using email-only auth like reference -->
+      <WebApplicationInfo>
+        <Id>13fd73e4-b4c0-42e1-b501-487ca433221d</Id>
+        <Resource>api://bss-www-sig.vercel.app/13fd73e4-b4c0-42e1-b501-487ca433221d</Resource>
+        <Scopes>
+          <Scope>openid</Scope>
+          <Scope>profile</Scope>
+          <Scope>access_as_user</Scope>
+        </Scopes>
+      </WebApplicationInfo>
 
     </VersionOverrides>
   </VersionOverrides>

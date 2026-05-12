@@ -24,8 +24,7 @@ function setButtonState(enabled) {
   document.getElementById("btnApply").disabled = !enabled;
 }
 
-// TEMPORARY: Set to true to skip SSO for debugging
-var SKIP_AUTH = true;
+var SKIP_AUTH = false;
 
 async function fetchSignature() {
   try {
