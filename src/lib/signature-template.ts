@@ -167,6 +167,7 @@ export function generateSignatureHtml(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body style="margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <div id="bss-signature">
   <table cellpadding="0" cellspacing="0" border="0" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #1f2937; width: 600px;">
     <tr>
       <!-- Left Column: Name, Designation, Mobile -->
@@ -264,6 +265,7 @@ export function generateSignatureHtml(
       ` : ""}
     </tr>
   </table>
+  </div>
 </body>
 </html>`.trim();
 }
