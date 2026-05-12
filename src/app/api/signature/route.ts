@@ -65,6 +65,7 @@ export async function GET(request: NextRequest) {
     const signature = await resolveSignature(user.id);
 
     // 5. Generate HTML
+    const baseUrl = process.env.AUTH_URL || new URL(request.url).origin;
     const html = generateSignatureHtml(
       user,
       signature.certifications,
@@ -73,6 +74,7 @@ export async function GET(request: NextRequest) {
       {
         defaultCompanyName: signature.countryBranding.companyName,
         website: signature.countryBranding.website ?? undefined,
+        logoUrl: `${baseUrl}/blackstone-logo.png`,
       }
     );
 
