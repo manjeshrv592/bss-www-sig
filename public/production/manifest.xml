@@ -90,11 +90,11 @@
                     </Action>
                   </Control>
 
-                  <Control xsi:type="Button" id="btnRefresh">
-                    <Label resid="refreshLabel"/>
+                  <Control xsi:type="Button" id="btnInsertSignature">
+                    <Label resid="insertLabel"/>
                     <Supertip>
-                      <Title resid="refreshLabel"/>
-                      <Description resid="refreshDesc"/>
+                      <Title resid="insertLabel"/>
+                      <Description resid="insertDesc"/>
                     </Supertip>
                     <Icon>
                       <bt:Image size="16" resid="icon16"/>
@@ -102,7 +102,7 @@
                       <bt:Image size="80" resid="icon80"/>
                     </Icon>
                     <Action xsi:type="ExecuteFunction">
-                      <FunctionName>refreshSignature</FunctionName>
+                      <FunctionName>insertSignature</FunctionName>
                     </Action>
                   </Control>
 
@@ -133,12 +133,12 @@
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="groupLabel" DefaultValue="BSS Signature"/>
-          <bt:String id="taskpaneLabel" DefaultValue="Signature"/>
-          <bt:String id="refreshLabel" DefaultValue="Refresh Signature"/>
+          <bt:String id="taskpaneLabel" DefaultValue="Sign In"/>
+          <bt:String id="insertLabel" DefaultValue="Insert Signature"/>
         </bt:ShortStrings>
         <bt:LongStrings>
-          <bt:String id="taskpaneDesc" DefaultValue="Open the signature panel to preview and apply your email signature."/>
-          <bt:String id="refreshDesc" DefaultValue="Fetch and apply your latest email signature."/>
+          <bt:String id="taskpaneDesc" DefaultValue="Sign in to authenticate before inserting your signature."/>
+          <bt:String id="insertDesc" DefaultValue="Insert your BSS email signature"/>
         </bt:LongStrings>
       </Resources>
 

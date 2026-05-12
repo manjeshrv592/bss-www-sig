@@ -1,0 +1,1 @@
+to sideload addin in outlook https://aka.ms/olksideload
