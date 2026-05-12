@@ -37,7 +37,10 @@ export async function verifyOfficeToken(
 ): Promise<VerifiedTokenPayload> {
   const { payload } = await jwtVerify(token, jwks, {
     audience: APP_URI,
-    issuer: `https://login.microsoftonline.com/${TENANT_ID}/v2.0`,
+    issuer: [
+      `https://login.microsoftonline.com/${TENANT_ID}/v2.0`,
+      `https://sts.windows.net/${TENANT_ID}/`,
+    ],
   });
 
   // Ensure the token has the expected scope
