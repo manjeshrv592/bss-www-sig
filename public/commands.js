@@ -143,8 +143,8 @@ function setSignature(html, item, event, isAuto) {
   );
 }
 
-function refreshSignature(event) {
-  console.log("=== refreshSignature clicked ===");
+function insertSignature(event) {
+  console.log("=== insertSignature clicked ===");
   insertSignatureLogic(event, false);
 }
 
@@ -153,5 +153,5 @@ function autoInsertSignature(event) {
   insertSignatureLogic(event, true);
 }
 
-Office.actions.associate("refreshSignature", refreshSignature);
+Office.actions.associate("insertSignature", insertSignature);
 Office.actions.associate("autoInsertSignature", autoInsertSignature);

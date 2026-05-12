@@ -74,27 +74,11 @@
                 <Group id="bssSignatureGroup">
                   <Label resid="groupLabel"/>
 
-                  <Control xsi:type="Button" id="btnTaskpane">
-                    <Label resid="taskpaneLabel"/>
+                  <Control xsi:type="Button" id="btnInsertSignature">
+                    <Label resid="insertLabel"/>
                     <Supertip>
-                      <Title resid="taskpaneLabel"/>
-                      <Description resid="taskpaneDesc"/>
-                    </Supertip>
-                    <Icon>
-                      <bt:Image size="16" resid="icon16"/>
-                      <bt:Image size="32" resid="icon32"/>
-                      <bt:Image size="80" resid="icon80"/>
-                    </Icon>
-                    <Action xsi:type="ShowTaskpane">
-                      <SourceLocation resid="taskpaneUrl"/>
-                    </Action>
-                  </Control>
-
-                  <Control xsi:type="Button" id="btnRefresh">
-                    <Label resid="refreshLabel"/>
-                    <Supertip>
-                      <Title resid="refreshLabel"/>
-                      <Description resid="refreshDesc"/>
+                      <Title resid="insertLabel"/>
+                      <Description resid="insertDesc"/>
                     </Supertip>
                     <Icon>
                       <bt:Image size="16" resid="icon16"/>
@@ -102,7 +86,7 @@
                       <bt:Image size="80" resid="icon80"/>
                     </Icon>
                     <Action xsi:type="ExecuteFunction">
-                      <FunctionName>refreshSignature</FunctionName>
+                      <FunctionName>insertSignature</FunctionName>
                     </Action>
                   </Control>
 
@@ -129,28 +113,17 @@
         </bt:Images>
         <bt:Urls>
           <bt:Url id="commandsUrl" DefaultValue="https://bss-www-sig.vercel.app/commands.html"/>
-          <bt:Url id="taskpaneUrl" DefaultValue="https://bss-www-sig.vercel.app/taskpane.html"/>
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="groupLabel" DefaultValue="BSS Signature"/>
-          <bt:String id="taskpaneLabel" DefaultValue="Signature"/>
-          <bt:String id="refreshLabel" DefaultValue="Refresh Signature"/>
+          <bt:String id="insertLabel" DefaultValue="Insert Signature"/>
         </bt:ShortStrings>
         <bt:LongStrings>
-          <bt:String id="taskpaneDesc" DefaultValue="Open the signature panel to preview and apply your email signature."/>
-          <bt:String id="refreshDesc" DefaultValue="Fetch and apply your latest email signature."/>
+          <bt:String id="insertDesc" DefaultValue="Insert your BSS email signature"/>
         </bt:LongStrings>
       </Resources>
 
-      <WebApplicationInfo>
-        <Id>13fd73e4-b4c0-42e1-b501-487ca433221d</Id>
-        <Resource>api://bss-www-sig.vercel.app/13fd73e4-b4c0-42e1-b501-487ca433221d</Resource>
-        <Scopes>
-          <Scope>openid</Scope>
-          <Scope>profile</Scope>
-          <Scope>access_as_user</Scope>
-        </Scopes>
-      </WebApplicationInfo>
+      <!-- WebApplicationInfo removed - using email-only auth like reference -->
 
     </VersionOverrides>
   </VersionOverrides>
