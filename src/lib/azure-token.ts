@@ -13,6 +13,9 @@ import { createRemoteJWKSet, jwtVerify, JWTPayload } from "jose";
 
 const TENANT_ID = process.env.AZURE_AD_TENANT_ID!;
 const CLIENT_ID = process.env.AZURE_AD_CLIENT_ID!;
+// Must match <Resource> in manifest and Application ID URI in Azure exactly.
+// e.g. api://bss-www-sig.vercel.app/13fd73e4-... or api://13fd73e4-...
+const APP_URI = process.env.AZURE_AD_APP_URI || `api://${CLIENT_ID}`;
 
 const JWKS_URL = new URL(
   `https://login.microsoftonline.com/${TENANT_ID}/discovery/v2.0/keys`
@@ -33,7 +36,7 @@ export async function verifyOfficeToken(
   token: string
 ): Promise<VerifiedTokenPayload> {
   const { payload } = await jwtVerify(token, jwks, {
-    audience: `api://${CLIENT_ID}`,
+    audience: APP_URI,
     issuer: `https://login.microsoftonline.com/${TENANT_ID}/v2.0`,
   });
 
