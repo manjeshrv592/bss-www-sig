@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Award, RefreshCw, ArrowRight, Activity } from "lucide-react";
+import { LocaleDate, LocaleDatetime } from "@/components/locale-date";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -21,9 +22,7 @@ export default async function DashboardPage() {
 
   const resourceCount = certCount + bannerCount + legalCount;
 
-  const lastSyncLabel = syncMeta?.lastSync
-    ? new Date(syncMeta.lastSync).toLocaleString()
-    : "Never";
+  const lastSync = syncMeta?.lastSync ?? null;
 
   return (
     <div className="space-y-8">
@@ -61,7 +60,7 @@ export default async function DashboardPage() {
             <RefreshCw className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-lg font-semibold">{lastSyncLabel}</p>
+            <p className="text-lg font-semibold">{lastSync ? <LocaleDate date={lastSync} /> : "Never"}</p>
             <p className="text-xs text-muted-foreground">Microsoft Graph sync</p>
           </CardContent>
         </Card>
@@ -99,9 +98,7 @@ export default async function DashboardPage() {
                       by {activity.user?.name ?? activity.user?.email ?? "System"}
                     </p>
                   </div>
-                  <time className="text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(activity.createdAt).toLocaleString()}
-                  </time>
+                  <LocaleDatetime date={activity.createdAt} className="text-xs text-muted-foreground whitespace-nowrap" />
                 </div>
               ))}
             </div>

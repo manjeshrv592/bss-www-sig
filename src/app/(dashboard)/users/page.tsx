@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Search } from "lucide-react";
 import { SyncButton } from "./sync-button";
 import { UserSearch } from "./user-search";
+import { LocaleDate } from "@/components/locale-date";
 
 export default async function UsersPage(props: {
   searchParams: Promise<{ q?: string; page?: string }>;
@@ -45,7 +46,7 @@ export default async function UsersPage(props: {
           <p className="text-sm text-muted-foreground">
             {total} users synced from Microsoft
             {syncMeta?.lastSync && (
-              <> · Last sync: {new Date(syncMeta.lastSync).toLocaleString()}</>
+              <> · Last sync: <LocaleDate date={syncMeta.lastSync} /></>
             )}
           </p>
         </div>

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Activity, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { LocaleDatetime } from "@/components/locale-date";
 
 export default async function ActivityPage(props: {
   searchParams: Promise<{ page?: string; entity?: string; action?: string }>;
@@ -92,9 +93,7 @@ export default async function ActivityPage(props: {
                       </span>
                     </div>
                   </div>
-                  <time className="text-xs text-muted-foreground whitespace-nowrap pt-0.5">
-                    {new Date(item.createdAt).toLocaleString()}
-                  </time>
+                  <LocaleDatetime date={item.createdAt} className="text-xs text-muted-foreground whitespace-nowrap pt-0.5" />
                 </div>
               ))}
             </div>

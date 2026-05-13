@@ -5,6 +5,7 @@ import { Users, Shield, Mail } from "lucide-react";
 import { Pagination } from "@/components/pagination";
 import { SyncGroupsButton } from "./sync-groups-button";
 import { GroupSearch } from "./group-search";
+import { LocaleDate } from "@/components/locale-date";
 
 const PER_PAGE = 25;
 
@@ -41,7 +42,7 @@ export default async function GroupsPage(props: {
           <p className="text-sm text-muted-foreground">
             {total} groups synced from Microsoft
             {syncMeta?.lastSync && (
-              <> · Last sync: {new Date(syncMeta.lastSync).toLocaleString()}</>
+              <> · Last sync: <LocaleDate date={syncMeta.lastSync} /></>
             )}
           </p>
         </div>
