@@ -8,6 +8,7 @@ import { ArrowLeft, Mail, Building, MapPin, Phone, Briefcase, Globe, Info, Shiel
 import { resolveSignature } from "@/lib/signature-resolver";
 import { generateSignatureHtml } from "@/lib/signature-template";
 import { UserOverrideManager } from "./user-override";
+import { SignaturePreview } from "./signature-preview";
 
 export default async function UserProfilePage(props: {
   params: Promise<{ id: string }>;
@@ -130,8 +131,8 @@ export default async function UserProfilePage(props: {
           </CardHeader>
           <CardContent>
             <div className="rounded-md border border-border bg-white p-4">
-              <iframe
-                srcDoc={generateSignatureHtml(
+              <SignaturePreview
+                html={generateSignatureHtml(
                   user,
                   signature.certifications,
                   signature.banners,
@@ -141,9 +142,6 @@ export default async function UserProfilePage(props: {
                     website: signature.countryBranding.website ?? undefined,
                   },
                 )}
-                className="w-full border-0"
-                style={{ minHeight: "200px" }}
-                title="Signature Preview"
               />
             </div>
           </CardContent>
