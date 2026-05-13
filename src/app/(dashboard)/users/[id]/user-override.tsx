@@ -71,9 +71,19 @@ export function UserOverrideManager({
   };
 
   const handleSave = () => {
+    // Include currently selected resource if not yet added
+    let finalOverrides = [...overrides];
+    if (addId) {
+      const exists = finalOverrides.some((o) => o.resourceType === addType && o.resourceId === addId);
+      if (!exists) {
+        finalOverrides.push({ resourceType: addType, resourceId: addId });
+      }
+    }
+    
     startTransition(async () => {
-      await setUserOverride({ msUserId, resources: overrides });
+      await setUserOverride({ msUserId, resources: finalOverrides });
       setEditing(false);
+      setAddId("");
       router.refresh();
     });
   };
@@ -162,7 +172,7 @@ export function UserOverrideManager({
             <SelectItem value="legal_text">Legal Text</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={addId || undefined} onValueChange={setAddId}>
+        <Select value={addId} onValueChange={setAddId}>
           <SelectTrigger className="flex-1">
             <SelectValue placeholder="Select resource..." />
           </SelectTrigger>
