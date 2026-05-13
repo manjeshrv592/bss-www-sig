@@ -36,16 +36,17 @@ function fetchSignatureHtml(email, allowPrompt) {
     allowSignInPrompt: !!allowPrompt,
     allowConsentPrompt: !!allowPrompt
   }).then(function (token) {
+    console.log("SSO token obtained for auto-insert");
     return fetch(API_URL + "?email=" + encodeURIComponent(email), {
       headers: { "Authorization": "Bearer " + token }
+    }).then(function (response) {
+      if (!response.ok) {
+        return response.json().catch(function () { return {}; }).then(function (data) {
+          throw new Error(data.error || "Server returned " + response.status);
+        });
+      }
+      return response.text();
     });
-  }).then(function (response) {
-    if (!response.ok) {
-      return response.json().catch(function () { return {}; }).then(function (data) {
-        throw new Error(data.error || "Server returned " + response.status);
-      });
-    }
-    return response.text();
   });
 }
 
@@ -116,6 +117,9 @@ function continueWithEmail(userEmail, item, event, isAuto) {
           message: msg,
           persistent: false
         });
+      } else {
+        // For auto-insert, show a subtle notification if SSO failed
+        console.log("Auto-insert failed, SSO token may not be cached. User needs to sign in via taskpane.");
       }
       if (event) event.completed();
     });
