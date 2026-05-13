@@ -87,7 +87,7 @@ export function generateSignatureHtml(
       .map(
         (cert, i) => `
       <td style="${i < activeCerts.length - 1 ? "padding-right: 14px;" : ""}">
-        <img src="${cert.image}" alt="${cert.alt ?? cert.name}" style="height: 54px; width: auto; display: block;" />
+        <img src="${cert.image}" alt="${cert.alt ?? cert.name}" width="54" height="54" style="width: 54px; height: 54px; max-width: 54px; max-height: 54px; display: block;" />
       </td>`
       )
       .join("");
@@ -103,7 +103,7 @@ export function generateSignatureHtml(
   const bannersHtml = banners
     .filter((b) => b.image)
     .map((banner) => {
-      const img = `<img src="${banner.image}" alt="${banner.alt ?? "Banner"}" style="max-width: 600px; width: 100%; height: auto; display: block;" />`;
+      const img = `<img src="${banner.image}" alt="${banner.alt ?? "Banner"}" width="600" height="120" style="width: 600px; height: auto; max-width: 600px; display: block;" />`;
       const wrapped = banner.link
         ? `<a href="${banner.link}" target="_blank" style="text-decoration: none;">${img}</a>`
         : img;
@@ -206,7 +206,7 @@ export function generateSignatureHtml(
           <!-- Logo -->
           <tr>
             <td style="padding-bottom: 10px; text-align: right;">
-              <img src="${options.logoUrl}" alt="${companyName}" style="height: 70px; width: auto; display: inline-block;" />
+              <img src="${options.logoUrl}" alt="${companyName}" width="180" height="70" style="height: 70px; width: 180px; max-width: 180px; max-height: 70px; display: inline-block;" />
             </td>
           </tr>
           ` : ""}
