@@ -15,7 +15,7 @@ var API_URL = window.location.origin + "/api/signature";
 
 var SKIP_AUTH = false;
 
-function fetchSignatureHtml(email) {
+function fetchSignatureHtml(email, allowPrompt) {
   var headers = {};
   
   if (SKIP_AUTH) {
@@ -31,10 +31,10 @@ function fetchSignatureHtml(email) {
       });
   }
   
-  // With SSO
+  // With SSO - allow prompt for manual insert, not for auto
   return Office.auth.getAccessToken({
-    allowSignInPrompt: false,
-    allowConsentPrompt: false
+    allowSignInPrompt: !!allowPrompt,
+    allowConsentPrompt: !!allowPrompt
   }).then(function (token) {
     return fetch(API_URL + "?email=" + encodeURIComponent(email), {
       headers: { "Authorization": "Bearer " + token }
@@ -74,11 +74,19 @@ function continueWithEmail(userEmail, item, event, isAuto) {
 
   if (!cleanEmail) {
     console.error("No email address found");
+    if (!isAuto) {
+      item.notificationMessages.addAsync("sigError", {
+        type: "errorMessage",
+        message: "Could not determine your email address. Please open the taskpane first.",
+        persistent: false
+      });
+    }
     if (event) event.completed();
     return;
   }
 
-  fetchSignatureHtml(cleanEmail)
+  // Allow sign-in prompt for manual insert, not for auto
+  fetchSignatureHtml(cleanEmail, !isAuto)
     .then(function (html) {
       if (isAuto) {
         item.body.getAsync(Office.CoercionType.Html, function (bodyResult) {
