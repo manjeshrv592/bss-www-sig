@@ -34,6 +34,7 @@ function formatDate(d: Date | null) {
 export function BannerList({ banners }: { banners: Banner[] }) {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<Banner | null>(null);
+  const [clearDates, setClearDates] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -43,8 +44,8 @@ export function BannerList({ banners }: { banners: Banner[] }) {
     const name = form.get("name") as string;
     const alt = (form.get("alt") as string) || undefined;
     const link = (form.get("link") as string) || undefined;
-    const startDate = (form.get("startDate") as string) || undefined;
-    const endDate = (form.get("endDate") as string) || undefined;
+    const startDate = clearDates ? null : ((form.get("startDate") as string) || undefined);
+    const endDate = clearDates ? null : ((form.get("endDate") as string) || undefined);
     const imageInput = document.getElementById("banner-image") as HTMLInputElement;
 
     startTransition(async () => {
@@ -60,6 +61,7 @@ export function BannerList({ banners }: { banners: Banner[] }) {
       }
       setOpen(false);
       setEditItem(null);
+      setClearDates(false);
       router.refresh();
     });
   };
@@ -84,7 +86,7 @@ export function BannerList({ banners }: { banners: Banner[] }) {
   return (
     <>
       <div className="flex justify-end">
-        <Dialog open={open} onOpenChange={(v: boolean) => { setOpen(v); if (!v) setEditItem(null); }}>
+        <Dialog open={open} onOpenChange={(v: boolean) => { setOpen(v); if (!v) { setEditItem(null); setClearDates(false); } }}>
           <DialogTrigger asChild>
             <Button size="sm" className="gap-2">
               <Plus className="h-4 w-4" />
@@ -124,25 +126,48 @@ export function BannerList({ banners }: { banners: Banner[] }) {
                   className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Start Date</label>
-                  <input
-                    name="startDate"
-                    type="date"
-                    defaultValue={formatDate(editItem?.startDate ?? null)}
-                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Date Range (optional)</label>
+                  {editItem && (editItem.startDate || editItem.endDate) && (
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={clearDates}
+                        onChange={(e) => setClearDates(e.target.checked)}
+                        className="rounded border-input"
+                      />
+                      Show permanently (clear dates)
+                    </label>
+                  )}
                 </div>
-                <div>
-                  <label className="text-sm font-medium">End Date</label>
-                  <input
-                    name="endDate"
-                    type="date"
-                    defaultValue={formatDate(editItem?.endDate ?? null)}
-                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                </div>
+                {!clearDates && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Start Date</label>
+                      <input
+                        name="startDate"
+                        type="date"
+                        defaultValue={formatDate(editItem?.startDate ?? null)}
+                        className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">End Date</label>
+                      <input
+                        name="endDate"
+                        type="date"
+                        defaultValue={formatDate(editItem?.endDate ?? null)}
+                        className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                    </div>
+                  </div>
+                )}
+                {clearDates && (
+                  <p className="text-xs text-muted-foreground bg-accent/50 rounded-md px-3 py-2">
+                    Date constraints will be removed. Banner will show permanently.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium">Image</label>

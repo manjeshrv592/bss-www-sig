@@ -148,12 +148,15 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
 
 const DEFAULT_BRANDING: CountryBranding = {
   companyName: "Blackstone Shipping Private Limited",
-  website: null,
+  website: "https://blackstoneshipping.com",
 };
 
 async function resolveCountryBranding(country: string | null): Promise<CountryBranding> {
   if (!country) return DEFAULT_BRANDING;
   const config = await prisma.countryConfig.findUnique({ where: { country } });
   if (!config) return DEFAULT_BRANDING;
-  return { companyName: config.companyName, website: config.website };
+  return {
+    companyName: config.companyName,
+    website: config.website ?? DEFAULT_BRANDING.website,
+  };
 }

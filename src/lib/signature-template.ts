@@ -129,7 +129,7 @@ export function generateSignatureHtml(
     const ltContent = legalTexts
       .map(
         (lt) => `
-      <div style="font-size: 14px; line-height: 1.4; word-wrap: break-word; overflow-wrap: break-word;">
+      <div style="font-size: 14px; line-height: 1.4; word-wrap: break-word; overflow-wrap: break-word; text-align: justify;">
         ${sanitizeHtmlForEmail(lt.content)}
       </div>`
       )
@@ -214,7 +214,7 @@ export function generateSignatureHtml(
           <!-- Company Name -->
           <tr>
             <td style="padding-bottom: 4px; text-align: right;">
-              <span style="font-size: 14px; font-weight: 700; color: #2563eb; display: block; text-align: right;">${companyName}</span>
+              <a href="${website}" target="_blank" style="font-size: 14px; font-weight: 700; color: #2563eb; text-decoration: none; display: block; text-align: right;">${companyName}</a>
             </td>
           </tr>
 

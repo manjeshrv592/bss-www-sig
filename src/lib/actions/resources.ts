@@ -52,8 +52,8 @@ export async function createBanner(data: {
   image?: string;
   alt?: string;
   link?: string;
-  startDate?: string;
-  endDate?: string;
+  startDate?: string | null;
+  endDate?: string | null;
 }) {
   const banner = await prisma.banner.create({
     data: {
@@ -78,18 +78,33 @@ export async function updateBanner(
     image?: string;
     alt?: string;
     link?: string;
-    startDate?: string;
-    endDate?: string;
+    startDate?: string | null;
+    endDate?: string | null;
     isActive?: boolean;
   }
 ) {
+  const updateData: Record<string, unknown> = { ...data };
+  
+  // Handle dates: null = clear, string = set, undefined = don't change
+  if (data.startDate === null) {
+    updateData.startDate = null;
+  } else if (data.startDate) {
+    updateData.startDate = new Date(data.startDate);
+  } else {
+    delete updateData.startDate;
+  }
+  
+  if (data.endDate === null) {
+    updateData.endDate = null;
+  } else if (data.endDate) {
+    updateData.endDate = new Date(data.endDate);
+  } else {
+    delete updateData.endDate;
+  }
+
   const banner = await prisma.banner.update({
     where: { id },
-    data: {
-      ...data,
-      startDate: data.startDate ? new Date(data.startDate) : undefined,
-      endDate: data.endDate ? new Date(data.endDate) : undefined,
-    },
+    data: updateData,
   });
   await logActivity({
     action: `Updated banner "${banner.name}"`,
