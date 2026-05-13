@@ -4,6 +4,10 @@ import { verifyOfficeToken } from "@/lib/azure-token";
 import { resolveSignature } from "@/lib/signature-resolver";
 import { generateSignatureHtml } from "@/lib/signature-template";
 
+// Optimize for faster response
+export const dynamic = "force-dynamic";
+export const fetchCache = "default-no-store";
+
 export async function GET(request: NextRequest) {
   try {
     // TEMPORARY: SSO disabled for debugging. Remove this block to re-enable.
@@ -87,7 +91,8 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
+        // Cache for 5 minutes on CDN, revalidate in background
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
       },
     });
   } catch (error) {

@@ -15,17 +15,24 @@ export interface ResolvedSignature {
 }
 
 export async function resolveSignature(msUserId: string): Promise<ResolvedSignature> {
-  const user = await prisma.msUser.findUnique({
-    where: { id: msUserId },
-    include: { overrides: true },
-  });
+  // Fetch user with overrides AND country config in parallel
+  const [user, groupMemberships] = await Promise.all([
+    prisma.msUser.findUnique({
+      where: { id: msUserId },
+      include: { overrides: true },
+    }),
+    prisma.msGroupMember.findMany({
+      where: { msUserId: msUserId },
+      select: { group: { select: { id: true } } },
+    }),
+  ]);
 
   if (!user) {
     return { certifications: [], banners: [], legalTexts: [], countryBranding: DEFAULT_BRANDING, isOverridden: false, matchedRules: [] };
   }
 
-  // Resolve country branding
-  const countryBranding = await resolveCountryBranding(user.country);
+  // Resolve country branding (can run in parallel with override check)
+  const countryBrandingPromise = resolveCountryBranding(user.country);
 
   // Check for user override first — replaces EVERYTHING
   if (user.overrides.length > 0) {
@@ -54,6 +61,7 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
       }),
     ]);
 
+    const countryBranding = await countryBrandingPromise;
     return { certifications, banners, legalTexts, countryBranding, isOverridden: true, matchedRules: [] };
   }
 
@@ -69,11 +77,7 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
     scopeConditions.push({ scope: "job_title", scopeValue: user.jobTitle });
   }
 
-  // Add group scopes — find all groups this user belongs to
-  const groupMemberships = await prisma.msGroupMember.findMany({
-    where: { msUserId: msUserId },
-    select: { group: { select: { id: true } } },
-  });
+  // Add group scopes — use already fetched group memberships
   for (const gm of groupMemberships) {
     scopeConditions.push({ scope: "group", scopeValue: gm.group.id });
   }
@@ -143,6 +147,7 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
       : Promise.resolve([]),
   ]);
 
+  const countryBranding = await countryBrandingPromise;
   return { certifications, banners, legalTexts, countryBranding, isOverridden: false, matchedRules };
 }
 
