@@ -11,7 +11,7 @@ export default async function UsersPage(props: {
   const searchParams = await props.searchParams;
   const query = searchParams.q ?? "";
   const page = Number(searchParams.page) || 1;
-  const perPage = 25;
+  const perPage = 10;
 
   const where = query
     ? {

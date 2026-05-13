@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Search, Loader2 } from "lucide-react";
 
-export function UserSearch({ defaultValue = "" }: { defaultValue?: string }) {
+export function GroupSearch({ defaultValue = "" }: { defaultValue?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [value, setValue] = useState(defaultValue);
@@ -23,7 +23,7 @@ export function UserSearch({ defaultValue = "" }: { defaultValue?: string }) {
       }
       params.delete("page");
       startTransition(() => {
-        router.push(`/users?${params.toString()}`);
+        router.push(`/groups?${params.toString()}`);
       });
     }, 300);
 
@@ -31,13 +31,13 @@ export function UserSearch({ defaultValue = "" }: { defaultValue?: string }) {
   }, [value, router, searchParams]);
 
   return (
-    <div className="relative">
+    <div className="relative max-w-sm">
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <input
         type="text"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Search by name, email, department, or job title..."
+        placeholder="Search groups..."
         className="w-full rounded-md border border-input bg-background px-10 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />
       {isPending && (

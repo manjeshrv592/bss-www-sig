@@ -177,6 +177,76 @@ DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<database>
 
 ---
 
+## 7a. Running on Standard Port 443 (No `:8123`)
+
+If your app is served via Nginx on standard HTTPS port **443** (recommended for production / Outlook Add-in compatibility), your URLs have **no port number** in them. This changes a few values:
+
+### App URI (Azure → Expose an API)
+
+```
+# With port 8123 (old)
+api://blackstone.simtechitsolutions.in/80c4e4bb-8b7f-4a99-8364-ee587b08670d
+
+# With standard port 443 (no port in URL — same value, port is implicit)
+api://blackstone.simtechitsolutions.in/80c4e4bb-8b7f-4a99-8364-ee587b08670d
+```
+
+> ✅ The App URI does **not** change — it never included the port. No Azure update needed for this field.
+
+### Redirect URI (Azure → Authentication)
+
+```
+# With port 8123
+https://blackstone.simtechitsolutions.in:8123/api/auth/callback/microsoft-entra-id
+
+# With standard port 443
+https://blackstone.simtechitsolutions.in/api/auth/callback/microsoft-entra-id
+```
+
+> ⚠️ Add the no-port URI in Azure → Authentication → Redirect URIs.
+
+### Environment Variables on the Server
+
+```env
+# With port 8123
+AUTH_URL=https://blackstone.simtechitsolutions.in:8123
+AZURE_AD_APP_URI=api://blackstone.simtechitsolutions.in/80c4e4bb-8b7f-4a99-8364-ee587b08670d
+
+# With standard port 443 (Nginx proxy)
+AUTH_URL=https://blackstone.simtechitsolutions.in         # no port!
+AZURE_AD_APP_URI=api://blackstone.simtechitsolutions.in/80c4e4bb-8b7f-4a99-8364-ee587b08670d  # unchanged
+```
+
+> The `AZURE_AD_APP_URI` stays the same. Only `AUTH_URL` loses the port.
+
+### Nginx Requirement
+
+Your Next.js app still runs on port `8123` internally. Nginx sits in front and handles port `443`:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name blackstone.simtechitsolutions.in;
+
+    ssl_certificate     /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location /bss-sig/ {
+        proxy_pass         http://localhost:8123/bss-sig/;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Forwarded-Host  $http_host;
+        proxy_set_header   X-Forwarded-Proto https;
+        proxy_set_header   X-Forwarded-Port  443;
+    }
+}
+```
+
+### Manifest to Use
+
+Use `public/production/443/manifest.xml` — all URLs point to `https://blackstone.simtechitsolutions.in` with no port.
+
+---
+
 ## 8. Deploy the Outlook Add-in Manifest
 
 1. Host the app and verify these URLs are accessible:
@@ -186,7 +256,8 @@ DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<database>
 2. The manifest files are pre-configured per environment:
    - `public/local/manifest.xml` → `http://localhost:3000`
    - `public/staging/manifest.xml` → `https://bss-www-sig.vercel.app`
-   - `public/production/manifest.xml` → `https://blackstone.simtechitsolutions.in:8123`
+   - `public/production/manifest.xml` → `https://blackstone.simtechitsolutions.in:8123` *(non-standard port — may fail MS validation)*
+   - `public/production/443/manifest.xml` → `https://blackstone.simtechitsolutions.in` *(standard port 443 via Nginx — use this for Admin Center upload)*
    - Each manifest has a **unique `<Id>`** (add-in GUID) — do not change these
    - If using a new tenant, update `<WebApplicationInfo><Id>` with the new `AZURE_AD_CLIENT_ID` and `<Resource>` with the new `AZURE_AD_APP_URI`
 3. Go to **Microsoft 365 Admin Center** → **Settings** → **Integrated Apps**

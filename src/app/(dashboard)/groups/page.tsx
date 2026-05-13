@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Users, Shield, Mail } from "lucide-react";
 import { Pagination } from "@/components/pagination";
 import { SyncGroupsButton } from "./sync-groups-button";
+import { GroupSearch } from "./group-search";
 
 const PER_PAGE = 25;
 
@@ -47,17 +48,7 @@ export default async function GroupsPage(props: {
         <SyncGroupsButton />
       </div>
 
-      {query !== undefined && (
-        <form action="/groups" method="GET">
-          <input
-            name="q"
-            type="text"
-            defaultValue={query}
-            placeholder="Search groups..."
-            className="w-full max-w-sm rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-        </form>
-      )}
+      <GroupSearch defaultValue={query} />
 
       {groups.length === 0 ? (
         <Card>
