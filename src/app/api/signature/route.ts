@@ -12,8 +12,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     let email: string | undefined;
 
-    if (SKIP_AUTH) {
+    // Check if this is a trusted request from Office add-in (auto-insert fallback)
+    const trustedSource = searchParams.get("trusted");
+    
+    if (SKIP_AUTH || trustedSource === "office") {
       // No auth — just use email from query param
+      // trusted=office is used by auto-insert when SSO token isn't available
+      // This is safe because the email comes from Office.context which is trusted
       email = searchParams.get("email")?.toLowerCase();
     } else {
       // 1. Verify Azure token

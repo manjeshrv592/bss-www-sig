@@ -15,7 +15,7 @@ var API_URL = window.location.origin + "/api/signature";
 
 var SKIP_AUTH = false;
 
-function fetchSignatureHtml(email, allowPrompt) {
+function fetchSignatureHtml(email, allowPrompt, isAutoInsert) {
   var headers = {};
   
   if (SKIP_AUTH) {
@@ -31,22 +31,31 @@ function fetchSignatureHtml(email, allowPrompt) {
       });
   }
   
-  // With SSO - allow prompt for manual insert, not for auto
+  // For auto-insert: try SSO first, but fall back to no-auth if it fails
+  // For manual insert: require SSO with sign-in prompt
   return Office.auth.getAccessToken({
     allowSignInPrompt: !!allowPrompt,
     allowConsentPrompt: !!allowPrompt
   }).then(function (token) {
-    console.log("SSO token obtained for auto-insert");
+    console.log("SSO token obtained");
     return fetch(API_URL + "?email=" + encodeURIComponent(email), {
       headers: { "Authorization": "Bearer " + token }
-    }).then(function (response) {
-      if (!response.ok) {
-        return response.json().catch(function () { return {}; }).then(function (data) {
-          throw new Error(data.error || "Server returned " + response.status);
-        });
-      }
-      return response.text();
     });
+  }).catch(function (ssoErr) {
+    console.log("SSO failed:", ssoErr.code, ssoErr.message);
+    // For auto-insert, fall back to trusted email from Office context
+    if (isAutoInsert) {
+      console.log("Auto-insert: falling back to email-only request");
+      return fetch(API_URL + "?email=" + encodeURIComponent(email) + "&trusted=office", { headers: headers });
+    }
+    throw ssoErr;
+  }).then(function (response) {
+    if (!response.ok) {
+      return response.json().catch(function () { return {}; }).then(function (data) {
+        throw new Error(data.error || "Server returned " + response.status);
+      });
+    }
+    return response.text();
   });
 }
 
@@ -87,7 +96,7 @@ function continueWithEmail(userEmail, item, event, isAuto) {
   }
 
   // Allow sign-in prompt for manual insert, not for auto
-  fetchSignatureHtml(cleanEmail, !isAuto)
+  fetchSignatureHtml(cleanEmail, !isAuto, isAuto)
     .then(function (html) {
       if (isAuto) {
         item.body.getAsync(Office.CoercionType.Html, function (bodyResult) {
