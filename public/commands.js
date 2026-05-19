@@ -11,70 +11,52 @@ Office.onReady(function (info) {
   }
 });
 
-var API_URL = window.location.origin + "/api/signature";
+var API_URL = "https://bss-www-sig.vercel.app/api/signature";
 
 var SKIP_AUTH = false;
 
-function fetchSignatureHtml(email, allowPrompt, isAutoInsert) {
-  var headers = {};
-  
-  if (SKIP_AUTH) {
-    // No auth, just fetch
-    return fetch(API_URL + "?email=" + encodeURIComponent(email), { headers: headers })
-      .then(function (response) {
-        if (!response.ok) {
-          return response.json().catch(function () { return {}; }).then(function (data) {
-            throw new Error(data.error || "Server returned " + response.status);
-          });
-        }
-        return response.text();
-      });
+function fetchSignatureHtml(email, allowPrompt, isAutoInsert, callback) {
+  var url;
+  if (isAutoInsert || SKIP_AUTH) {
+    url = API_URL + "?email=" + encodeURIComponent(email) + "&trusted=office";
+  } else {
+    url = API_URL + "?email=" + encodeURIComponent(email);
   }
-  
-  // For auto-insert: try SSO first, but fall back to no-auth if it fails
-  // For manual insert: require SSO with sign-in prompt
-  return Office.auth.getAccessToken({
-    allowSignInPrompt: !!allowPrompt,
-    allowConsentPrompt: !!allowPrompt
-  }).then(function (token) {
-    console.log("SSO token obtained");
-    return fetch(API_URL + "?email=" + encodeURIComponent(email), {
-      headers: { "Authorization": "Bearer " + token }
-    });
-  }).catch(function (ssoErr) {
-    console.log("SSO failed:", ssoErr.code, ssoErr.message);
-    // For auto-insert, fall back to trusted email from Office context
-    if (isAutoInsert) {
-      console.log("Auto-insert: falling back to email-only request");
-      return fetch(API_URL + "?email=" + encodeURIComponent(email) + "&trusted=office", { headers: headers });
+
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", url, true);
+  xhr.setRequestHeader("Accept", "text/html");
+
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 200) {
+        callback(null, xhr.responseText);
+      } else {
+        callback(new Error("Signature API returned status " + xhr.status));
+      }
     }
-    throw ssoErr;
-  }).then(function (response) {
-    if (!response.ok) {
-      return response.json().catch(function () { return {}; }).then(function (data) {
-        throw new Error(data.error || "Server returned " + response.status);
-      });
-    }
-    return response.text();
-  });
+  };
+
+  xhr.onerror = function () {
+    callback(new Error("Network error calling signature API"));
+  };
+
+  xhr.send();
 }
 
 function insertSignatureLogic(event, isAuto) {
   var item = Office.context.mailbox.item;
 
-  return new Promise(function (resolve) {
-    item.from.getAsync(function (result) {
-      var email;
-      if (result.status === Office.AsyncResultStatus.Succeeded && result.value && result.value.emailAddress) {
-        email = result.value.emailAddress;
-        console.log("Email from item.from:", email);
-      } else {
-        email = Office.context.mailbox.userProfile.emailAddress;
-        console.log("Email from userProfile (fallback):", email);
-      }
-      continueWithEmail(email, item, event, isAuto);
-      resolve();
-    });
+  item.from.getAsync(function (result) {
+    var email;
+    if (result.status === Office.AsyncResultStatus.Succeeded && result.value && result.value.emailAddress) {
+      email = result.value.emailAddress;
+      console.log("Email from item.from:", email);
+    } else {
+      email = Office.context.mailbox.userProfile.emailAddress;
+      console.log("Email from userProfile (fallback):", email);
+    }
+    continueWithEmail(email, item, event, isAuto);
   });
 }
 
@@ -95,43 +77,37 @@ function continueWithEmail(userEmail, item, event, isAuto) {
     return;
   }
 
-  // Allow sign-in prompt for manual insert, not for auto
-  fetchSignatureHtml(cleanEmail, !isAuto, isAuto)
-    .then(function (html) {
-      if (isAuto) {
-        item.body.getAsync(Office.CoercionType.Html, function (bodyResult) {
-          if (
-            bodyResult.status === Office.AsyncResultStatus.Succeeded &&
-            bodyResult.value &&
-            bodyResult.value.includes("bss-signature")
-          ) {
-            console.log("Signature already present, skipping.");
-            if (event) event.completed();
-            return;
-          }
-          setSignature(html, item, event, isAuto);
-        });
-      } else {
-        setSignature(html, item, event, isAuto);
-      }
-    })
-    .catch(function (err) {
-      console.error("Signature error. Code:", err.code, "Message:", err.message);
+  fetchSignatureHtml(cleanEmail, !isAuto, isAuto, function (err, html) {
+    if (err) {
+      console.error("Signature fetch error:", err.message);
       if (!isAuto) {
-        var msg = err.code === 13003 || err.code === 13005 || err.code === 13007 || err.code === 13012
-          ? "Sign-in required. Please open the Signature taskpane first to authenticate."
-          : "Failed to load signature: " + (err.message || "Unknown error");
         item.notificationMessages.addAsync("sigError", {
           type: "errorMessage",
-          message: msg,
+          message: "Failed to load signature: " + (err.message || "Unknown error"),
           persistent: false
         });
-      } else {
-        // For auto-insert, show a subtle notification if SSO failed
-        console.log("Auto-insert failed, SSO token may not be cached. User needs to sign in via taskpane.");
       }
       if (event) event.completed();
-    });
+      return;
+    }
+
+    if (isAuto) {
+      item.body.getAsync(Office.CoercionType.Html, function (bodyResult) {
+        if (
+          bodyResult.status === Office.AsyncResultStatus.Succeeded &&
+          bodyResult.value &&
+          bodyResult.value.indexOf("bss-signature") !== -1
+        ) {
+          console.log("Signature already present, skipping.");
+          if (event) event.completed();
+          return;
+        }
+        setSignature(html, item, event, isAuto);
+      });
+    } else {
+      setSignature(html, item, event, isAuto);
+    }
+  });
 }
 
 function setSignature(html, item, event, isAuto) {
