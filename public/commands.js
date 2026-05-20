@@ -16,12 +16,7 @@ var API_URL = "https://bss-www-sig.vercel.app/api/signature";
 var SKIP_AUTH = false;
 
 function fetchSignatureHtml(email, allowPrompt, isAutoInsert, callback) {
-  var url;
-  if (isAutoInsert || SKIP_AUTH) {
-    url = API_URL + "?email=" + encodeURIComponent(email) + "&trusted=office";
-  } else {
-    url = API_URL + "?email=" + encodeURIComponent(email);
-  }
+  var url = API_URL + "?email=" + encodeURIComponent(email) + "&trusted=office";
 
   var xhr = new XMLHttpRequest();
   xhr.open("GET", url, true);
