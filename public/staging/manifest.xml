@@ -63,6 +63,7 @@
           <Runtimes>
             <Runtime resid="webViewRuntimeUrl">
               <Override type="javascript" resid="jsRuntimeUrl"/>
+              <Lifetime>long</Lifetime>
             </Runtime>
           </Runtimes>
 
