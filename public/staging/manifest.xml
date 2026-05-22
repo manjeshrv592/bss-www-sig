@@ -7,7 +7,7 @@
 
   <!-- Basic Settings -->
   <Id>f47ac10b-58cc-4372-a567-0e02b2c3d479</Id>
-  <Version>1.0.4.0</Version>
+  <Version>1.0.2.0</Version>
   <ProviderName>Blackstone Shipping</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="BSS Signature"/>
@@ -52,7 +52,7 @@
     <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.1" xsi:type="VersionOverridesV1_1">
 
       <Requirements>
-        <bt:Sets DefaultMinVersion="1.5">
+        <bt:Sets DefaultMinVersion="1.10">
           <bt:Set Name="Mailbox"/>
         </bt:Sets>
       </Requirements>
@@ -118,18 +118,6 @@
             </ExtensionPoint>
 
           </DesktopFormFactor>
-
-          <!-- Mobile: Android and iOS event-based activation -->
-          <MobileFormFactor>
-            <FunctionFile resid="webViewRuntimeUrl"/>
-            <ExtensionPoint xsi:type="LaunchEvent">
-              <LaunchEvents>
-                <LaunchEvent Type="OnNewMessageCompose" FunctionName="autoInsertSignature"/>
-              </LaunchEvents>
-              <SourceLocation resid="webViewRuntimeUrl"/>
-            </ExtensionPoint>
-          </MobileFormFactor>
-
         </Host>
       </Hosts>
 

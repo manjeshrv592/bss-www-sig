@@ -7,7 +7,7 @@
 
   <!-- Basic Settings -->
   <Id>b94f9d12-3e76-4c95-8b01-2a73f5c4e8d1</Id>
-  <Version>1.0.0.0</Version>
+  <Version>1.0.2.0</Version>
   <ProviderName>Blackstone Shipping</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="BSS Signature"/>
@@ -61,13 +61,13 @@
         <Host xsi:type="MailHost">
 
           <Runtimes>
-            <Runtime resid="commandsUrl">
-              <Override type="javascript" resid="commandsUrl"/>
+            <Runtime resid="webViewRuntimeUrl">
+              <Override type="javascript" resid="jsRuntimeUrl"/>
             </Runtime>
           </Runtimes>
 
           <DesktopFormFactor>
-            <FunctionFile resid="commandsUrl"/>
+            <FunctionFile resid="webViewRuntimeUrl"/>
 
             <ExtensionPoint xsi:type="MessageComposeCommandSurface">
               <OfficeTab id="TabDefault">
@@ -114,7 +114,7 @@
               <LaunchEvents>
                 <LaunchEvent Type="OnNewMessageCompose" FunctionName="autoInsertSignature"/>
               </LaunchEvents>
-              <SourceLocation resid="commandsUrl"/>
+              <SourceLocation resid="webViewRuntimeUrl"/>
             </ExtensionPoint>
 
           </DesktopFormFactor>
@@ -128,7 +128,8 @@
           <bt:Image id="icon80" DefaultValue="https://blackstone.simtechitsolutions.in:8123/icon-80.png"/>
         </bt:Images>
         <bt:Urls>
-          <bt:Url id="commandsUrl" DefaultValue="https://blackstone.simtechitsolutions.in:8123/commands.html"/>
+          <bt:Url id="webViewRuntimeUrl" DefaultValue="https://blackstone.simtechitsolutions.in:8123/commands.html"/>
+          <bt:Url id="jsRuntimeUrl" DefaultValue="https://blackstone.simtechitsolutions.in:8123/commands.js"/>
           <bt:Url id="taskpaneUrl" DefaultValue="https://blackstone.simtechitsolutions.in:8123/taskpane.html"/>
         </bt:Urls>
         <bt:ShortStrings>

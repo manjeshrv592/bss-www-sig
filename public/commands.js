@@ -11,7 +11,11 @@ Office.onReady(function (info) {
   }
 });
 
-var API_URL = "https://bss-www-sig.vercel.app/api/signature";
+var API_BASE = "https://bss-www-sig.vercel.app";
+if (typeof self !== "undefined" && self.location && self.location.origin) {
+  API_BASE = self.location.origin;
+}
+var API_URL = API_BASE + "/api/signature";
 
 var SKIP_AUTH = false;
 
