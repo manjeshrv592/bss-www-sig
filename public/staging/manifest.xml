@@ -7,7 +7,7 @@
 
   <!-- Basic Settings -->
   <Id>f47ac10b-58cc-4372-a567-0e02b2c3d479</Id>
-  <Version>1.0.2.0</Version>
+  <Version>1.0.6.0</Version>
   <ProviderName>Blackstone Shipping</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="BSS Signature"/>
@@ -61,14 +61,13 @@
         <Host xsi:type="MailHost">
 
           <Runtimes>
-            <Runtime resid="webViewRuntimeUrl">
-              <Override type="javascript" resid="jsRuntimeUrl"/>
-              <Lifetime>long</Lifetime>
+            <Runtime resid="commandsUrl">
+              <Override type="javascript" resid="commandsUrl"/>
             </Runtime>
           </Runtimes>
 
           <DesktopFormFactor>
-            <FunctionFile resid="webViewRuntimeUrl"/>
+            <FunctionFile resid="commandsUrl"/>
 
             <ExtensionPoint xsi:type="MessageComposeCommandSurface">
               <OfficeTab id="TabDefault">
@@ -115,7 +114,7 @@
               <LaunchEvents>
                 <LaunchEvent Type="OnNewMessageCompose" FunctionName="autoInsertSignature"/>
               </LaunchEvents>
-              <SourceLocation resid="webViewRuntimeUrl"/>
+              <SourceLocation resid="commandsUrl"/>
             </ExtensionPoint>
 
           </DesktopFormFactor>
@@ -129,8 +128,7 @@
           <bt:Image id="icon80" DefaultValue="https://bss-www-sig.vercel.app/icon-80.png"/>
         </bt:Images>
         <bt:Urls>
-          <bt:Url id="webViewRuntimeUrl" DefaultValue="https://bss-www-sig.vercel.app/commands.html"/>
-          <bt:Url id="jsRuntimeUrl" DefaultValue="https://bss-www-sig.vercel.app/commands.js"/>
+          <bt:Url id="commandsUrl" DefaultValue="https://bss-www-sig.vercel.app/commands.html"/>
           <bt:Url id="taskpaneUrl" DefaultValue="https://bss-www-sig.vercel.app/taskpane.html"/>
         </bt:Urls>
         <bt:ShortStrings>

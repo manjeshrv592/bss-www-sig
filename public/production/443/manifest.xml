@@ -7,7 +7,7 @@
 
   <!-- Basic Settings -->
   <Id>b94f9d12-3e76-4c95-8b01-2a73f5c4e8d1</Id>
-  <Version>1.0.2.0</Version>
+  <Version>1.0.3.0</Version>
   <ProviderName>Blackstone Shipping</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="BSS Signature"/>
@@ -63,7 +63,6 @@
           <Runtimes>
             <Runtime resid="webViewRuntimeUrl">
               <Override type="javascript" resid="jsRuntimeUrl"/>
-              <Lifetime>long</Lifetime>
             </Runtime>
           </Runtimes>
 

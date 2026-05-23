@@ -1,7 +1,9 @@
 /* global Office */
-// NOTE: Office.onReady is NOT used here.
-// For event-based activation in classic Outlook, handlers must be
-// registered immediately via Office.actions.associate at the top level.
+
+Office.onReady(function (info) {
+  console.log("=== commands.js loaded ===");
+  console.log("Host:", info.host, "Platform:", info.platform);
+});
 
 var API_BASE = "https://bss-www-sig.vercel.app";
 if (typeof self !== "undefined" && self.location && self.location.origin) {
@@ -140,16 +142,5 @@ function autoInsertSignature(event) {
   insertSignatureLogic(event, true);
 }
 
-// Register handlers IMMEDIATELY - must be at top-level, not inside Office.onReady
 Office.actions.associate("insertSignature", insertSignature);
 Office.actions.associate("autoInsertSignature", autoInsertSignature);
-
-// Fallback: also call associate after a short delay in case Office object wasn't ready
-if (typeof setTimeout !== "undefined") {
-  setTimeout(function () {
-    try {
-      Office.actions.associate("insertSignature", insertSignature);
-      Office.actions.associate("autoInsertSignature", autoInsertSignature);
-    } catch (e) { /* already registered */ }
-  }, 500);
-}
