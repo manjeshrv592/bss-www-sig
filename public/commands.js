@@ -5,11 +5,7 @@ Office.onReady(function (info) {
   console.log("Host:", info.host, "Platform:", info.platform);
 });
 
-var API_BASE = "https://bss-www-sig.vercel.app";
-if (typeof self !== "undefined" && self.location && self.location.origin) {
-  API_BASE = self.location.origin;
-}
-var API_URL = API_BASE + "/api/signature";
+var API_URL = "https://blackstone.simtechitsolutions.in/api/signature";
 
 var SKIP_AUTH = false;
 
