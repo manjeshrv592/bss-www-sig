@@ -104,32 +104,50 @@ function continueWithEmail(userEmail, item, event, isAuto) {
 }
 
 function setSignature(html, item, event, isAuto) {
-  item.body.setSignatureAsync(
-    html,
-    { coercionType: Office.CoercionType.Html },
-    function (result) {
-      if (result.status === Office.AsyncResultStatus.Succeeded) {
-        console.log("Signature set successfully");
-        if (!isAuto) {
-          item.notificationMessages.addAsync("sigSuccess", {
-            type: "informationalMessage",
-            message: "Signature applied successfully!",
-            persistent: false
-          });
+  try {
+    if (isAuto) {
+      // Auto-insert: use setSignatureAsync (sets signature area, no cursor move)
+      item.body.setSignatureAsync(
+        html,
+        { coercionType: Office.CoercionType.Html },
+        function (result) {
+          if (result.status === Office.AsyncResultStatus.Succeeded) {
+            console.log("Auto signature set successfully");
+          } else {
+            console.error("setSignatureAsync error:", result.error.message);
+          }
+          if (event) event.completed();
         }
-      } else {
-        console.error("setSignatureAsync error:", result.error.message);
-        if (!isAuto) {
-          item.notificationMessages.addAsync("sigError", {
-            type: "errorMessage",
-            message: "Failed to apply signature: " + result.error.message,
-            persistent: false
-          });
+      );
+    } else {
+      // Manual insert: use setSelectedDataAsync (works reliably in command context)
+      item.body.setSelectedDataAsync(
+        html,
+        { coercionType: Office.CoercionType.Html },
+        function (result) {
+          if (result.status === Office.AsyncResultStatus.Succeeded) {
+            console.log("Manual signature inserted successfully");
+            item.notificationMessages.addAsync("sigSuccess", {
+              type: "informationalMessage",
+              message: "Signature applied successfully!",
+              persistent: false
+            });
+          } else {
+            console.error("setSelectedDataAsync error:", result.error.message);
+            item.notificationMessages.addAsync("sigError", {
+              type: "errorMessage",
+              message: "Failed to apply signature: " + result.error.message,
+              persistent: false
+            });
+          }
+          if (event) event.completed();
         }
-      }
-      if (event) event.completed();
+      );
     }
-  );
+  } catch (e) {
+    console.error("setSignature exception:", e);
+    if (event) event.completed();
+  }
 }
 
 function insertSignature(event) {
