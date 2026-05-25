@@ -5,7 +5,11 @@ Office.onReady(function (info) {
   console.log("Host:", info.host, "Platform:", info.platform);
 });
 
-var API_URL = "https://blackstone.simtechitsolutions.in/api/signature";
+var API_BASE = "https://blackstone.simtechitsolutions.in";
+if (typeof self !== "undefined" && self.location && self.location.origin && self.location.origin !== "null") {
+  API_BASE = self.location.origin;
+}
+var API_URL = API_BASE + "/api/signature";
 
 var SKIP_AUTH = false;
 
@@ -135,12 +139,6 @@ function insertSignature(event) {
 
 function autoInsertSignature(event) {
   console.log("=== autoInsertSignature triggered ===");
-  var item = Office.context.mailbox.item;
-  item.notificationMessages.addAsync("sigDebug", {
-    type: "informationalMessage",
-    message: "Auto-insert event fired!",
-    persistent: false
-  });
   insertSignatureLogic(event, true);
 }
 
