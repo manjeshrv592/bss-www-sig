@@ -104,32 +104,33 @@ function continueWithEmail(userEmail, item, event, isAuto) {
 }
 
 function setSignature(html, item, event, isAuto) {
-  item.body.setSignatureAsync(
-    html,
-    { coercionType: Office.CoercionType.Html },
-    function (result) {
-      if (result.status === Office.AsyncResultStatus.Succeeded) {
-        console.log("Signature set successfully");
-        if (!isAuto) {
-          item.notificationMessages.addAsync("sigSuccess", {
-            type: "informationalMessage",
-            message: "Signature applied successfully!",
-            persistent: false
-          });
+  if (isAuto) {
+    item.body.setSignatureAsync(
+      html,
+      { coercionType: Office.CoercionType.Html },
+      function (result) {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+          console.log("Signature set successfully (auto)");
+        } else {
+          console.error("setSignatureAsync error:", result.error.message);
         }
-      } else {
-        console.error("setSignatureAsync error:", result.error.message);
-        if (!isAuto) {
-          item.notificationMessages.addAsync("sigError", {
-            type: "errorMessage",
-            message: "Failed to apply signature: " + result.error.message,
-            persistent: false
-          });
-        }
+        if (event) event.completed();
       }
-      if (event) event.completed();
-    }
-  );
+    );
+  } else {
+    item.body.setSelectedDataAsync(
+      html,
+      { coercionType: Office.CoercionType.Html },
+      function (result) {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+          console.log("Signature set successfully (manual)");
+        } else {
+          console.error("setSelectedDataAsync error:", result.error.message);
+        }
+        if (event) event.completed();
+      }
+    );
+  }
 }
 
 function insertSignature(event) {
