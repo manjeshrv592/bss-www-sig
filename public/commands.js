@@ -135,6 +135,12 @@ function insertSignature(event) {
 
 function autoInsertSignature(event) {
   console.log("=== autoInsertSignature triggered ===");
+  var item = Office.context.mailbox.item;
+  item.notificationMessages.addAsync("sigDebug", {
+    type: "informationalMessage",
+    message: "Auto-insert event fired!",
+    persistent: false
+  });
   insertSignatureLogic(event, true);
 }
 
