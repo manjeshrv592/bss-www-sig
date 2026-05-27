@@ -84,22 +84,7 @@ function continueWithEmail(userEmail, item, event, isAuto) {
       return;
     }
 
-    if (isAuto) {
-      item.body.getAsync(Office.CoercionType.Html, function (bodyResult) {
-        if (
-          bodyResult.status === Office.AsyncResultStatus.Succeeded &&
-          bodyResult.value &&
-          bodyResult.value.indexOf("bss-signature") !== -1
-        ) {
-          console.log("Signature already present, skipping.");
-          if (event) event.completed();
-          return;
-        }
-        setSignature(html, item, event, isAuto);
-      });
-    } else {
-      setSignature(html, item, event, isAuto);
-    }
+    setSignature(html, item, event, isAuto);
   });
 }
 
