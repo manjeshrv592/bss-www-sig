@@ -145,18 +145,14 @@ export function generateSignatureHtml(
   }
 
   // Build address HTML for right column
+  // Use <br> instead of display:block spans — classic Outlook (Word renderer) ignores display:block on spans
   let addressHtml = "";
   if (hasAddress) {
     const lines: string[] = [];
     if (addressLine1Parts.length > 0) lines.push(addressLine1Parts.join(", "));
     if (addressLine2Parts.length > 0) lines.push(addressLine2Parts.join(", "));
     if (addressLine3Parts.length > 0) lines.push(addressLine3Parts.join(", "));
-    addressHtml = lines
-      .map(
-        (line) =>
-          `<span style="display: block; text-align: right;">${line}</span>`
-      )
-      .join("");
+    addressHtml = lines.join("<br>");
   }
 
   return `
@@ -169,15 +165,15 @@ export function generateSignatureHtml(
 </head>
 <body style="margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <div id="bss-signature">
-  <table cellpadding="0" cellspacing="0" border="0" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #1f2937; width: 600px;">
+  <table cellpadding="0" cellspacing="0" border="0" width="600" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #1f2937; width: 600px;">
     <tr>
       <!-- Left Column: Name, Designation, Mobile -->
-      <td style="vertical-align: top; padding-right: 30px; min-width: 250px;">
+      <td style="vertical-align: top; padding-right: 30px;">
         <table cellpadding="0" cellspacing="0" border="0">
           <!-- Name -->
           <tr>
             <td style="padding-bottom: 2px;">
-              <span style="font-size: 22px; font-weight: 700; color: #111827; display: block;">${fullName}</span>
+              <span style="font-size: 16px; font-weight: 700; color: #111827; display: block; white-space: nowrap;">${fullName}</span>
             </td>
           </tr>
 
@@ -192,7 +188,7 @@ export function generateSignatureHtml(
           <!-- Mobile Number -->
           <tr>
             <td style="padding-bottom: 6px;">
-              <a href="tel:${contactNumber.replace(/[^0-9+]/g, "")}" style="color: #2563eb; text-decoration: none; font-size: 14px; font-weight: 600;">M. ${contactNumber}</a>
+              <a href="tel:${contactNumber.replace(/[^0-9+]/g, "")}" style="color: #2563eb; text-decoration: none; font-size: 14px; font-weight: 600;"><span style="color: #2563eb; font-size: 14px; font-weight: 600;">M. ${contactNumber}</span></a>
             </td>
           </tr>
           ` : ""}
@@ -233,7 +229,7 @@ export function generateSignatureHtml(
           <!-- Telephone -->
           <tr>
             <td style="text-align: right; padding-top: 4px;">
-              <a href="tel:${telephoneNumber.replace(/[^0-9+]/g, "")}" style="color: #2563eb; text-decoration: none; font-size: 14px;">T. ${telephoneNumber}</a>
+              <a href="tel:${telephoneNumber.replace(/[^0-9+]/g, "")}" style="color: #2563eb; text-decoration: none; font-size: 14px;"><span style="color: #2563eb; font-size: 14px;">T. ${telephoneNumber}</span></a>
             </td>
           </tr>
           ` : ""}
@@ -253,14 +249,14 @@ export function generateSignatureHtml(
   ${bannersHtml}
   ${legalTextHtml}
 
-  <!-- Footer -->
-  <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 15px; max-width: 600px; width: 100%;">
+  <!-- Footer: width attribute + align attribute used for classic Outlook (Word renderer ignores width:100% CSS) -->
+  <table cellpadding="0" cellspacing="0" border="0" width="600" style="margin-top: 15px; width: 600px;">
     <tr>
-      <td style="font-size: 14px; color: #2563eb; font-weight: 600;">
+      <td style="font-size: 14px; color: #2563eb; font-weight: 600; white-space: nowrap;">
         ${options.tagline ?? ""}
       </td>
       ${website ? `
-      <td style="font-size: 14px; text-align: right; padding-left: 8px;">
+      <td align="right" style="font-size: 14px; text-align: right; white-space: nowrap;">
         <a href="${website}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600;">${website.replace(/^https?:\/\//, "")}</a>
       </td>
       ` : ""}
