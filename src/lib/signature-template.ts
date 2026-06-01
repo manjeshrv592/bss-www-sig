@@ -260,7 +260,7 @@ export function generateSignatureHtml(
         ${options.tagline ?? ""}
       </td>
       ${website ? `
-      <td style="font-size: 14px; text-align: right;">
+      <td style="font-size: 14px; text-align: right; padding-left: 8px;">
         <a href="${website}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600;">${website.replace(/^https?:\/\//, "")}</a>
       </td>
       ` : ""}
