@@ -65,8 +65,8 @@ export function generateSignatureHtml(
   const website = options.website || "";
 
   // Build multi-line address
-  const addressLine1Parts: string[] = [];
-  if (user.officeLocation) addressLine1Parts.push(user.officeLocation);
+  // const addressLine1Parts: string[] = [];
+  // if (user.officeLocation) addressLine1Parts.push(user.officeLocation);
 
   const addressLine2Parts: string[] = [];
   if (user.city) addressLine2Parts.push(user.city);
@@ -75,7 +75,7 @@ export function generateSignatureHtml(
   if (user.country) addressLine3Parts.push(user.country);
 
   const hasAddress =
-    addressLine1Parts.length > 0 ||
+    // addressLine1Parts.length > 0 ||
     addressLine2Parts.length > 0 ||
     addressLine3Parts.length > 0;
 
@@ -135,7 +135,10 @@ export function generateSignatureHtml(
       )
       .join("");
     legalTextHtml = `
-    <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 15px; width: 600px; table-layout: fixed;">
+    <table cellpadding="0" cellspacing="0" border="0" width="600" style="width: 600px; table-layout: fixed;">
+      <tr>
+        <td height="15" style="font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">&nbsp;</td>
+      </tr>
       <tr>
         <td>
           ${ltContent}
@@ -149,7 +152,7 @@ export function generateSignatureHtml(
   let addressHtml = "";
   if (hasAddress) {
     const lines: string[] = [];
-    if (addressLine1Parts.length > 0) lines.push(addressLine1Parts.join(", "));
+    // if (addressLine1Parts.length > 0) lines.push(addressLine1Parts.join(", "));
     if (addressLine2Parts.length > 0) lines.push(addressLine2Parts.join(", "));
     if (addressLine3Parts.length > 0) lines.push(addressLine3Parts.join(", "));
     addressHtml = lines.join("<br>");
