@@ -7,7 +7,7 @@
 
   <!-- Basic Settings -->
   <Id>f47ac10b-58cc-4372-a567-0e02b2c3d479</Id>
-  <Version>1.0.6.0</Version>
+  <Version>1.0.7.0</Version>
   <ProviderName>Blackstone Shipping</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="BSS Signature"/>
@@ -61,8 +61,11 @@
         <Host xsi:type="MailHost">
 
           <Runtimes>
+            <!-- Runtime resid (HTML) = browser runtime used by Outlook on the web and new Outlook on Windows.
+                 Override type="javascript" (JS file) = JavaScript-only runtime used by classic Outlook on Windows.
+                 These MUST point to different files: classic Outlook executes the Override resid AS JavaScript. -->
             <Runtime resid="commandsUrl">
-              <Override type="javascript" resid="commandsUrl"/>
+              <Override type="javascript" resid="commandsJsUrl"/>
             </Runtime>
           </Runtimes>
 
@@ -129,6 +132,7 @@
         </bt:Images>
         <bt:Urls>
           <bt:Url id="commandsUrl" DefaultValue="https://bss-www-sig.vercel.app/commands.html"/>
+          <bt:Url id="commandsJsUrl" DefaultValue="https://bss-www-sig.vercel.app/commands.js"/>
           <bt:Url id="taskpaneUrl" DefaultValue="https://bss-www-sig.vercel.app/taskpane.html"/>
         </bt:Urls>
         <bt:ShortStrings>
