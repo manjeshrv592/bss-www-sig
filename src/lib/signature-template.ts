@@ -190,7 +190,7 @@ export function generateSignatureHtml(
           <!-- Company Name (left column) -->
           <tr>
             <td style="padding-bottom: 14px;">
-              <span style="font-size: 13px; color: #374151; display: block; white-space: nowrap;">${companyName}</span>
+              <a href="${website}" target="_blank" style="font-size: 14px; font-weight: 700; color: #2563eb; text-decoration: none; display: block; white-space: nowrap;">${companyName}</a>
             </td>
           </tr>
 
@@ -216,13 +216,6 @@ export function generateSignatureHtml(
             </td>
           </tr>
           ` : ""}
-
-          <!-- Company Name -->
-          <tr>
-            <td style="padding-bottom: 4px; text-align: right;">
-              <a href="${website}" target="_blank" style="font-size: 14px; font-weight: 700; color: #2563eb; text-decoration: none; display: block; text-align: right;">${companyName}</a>
-            </td>
-          </tr>
 
           ${hasAddress ? `
           <!-- Address -->
