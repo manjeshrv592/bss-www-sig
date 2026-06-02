@@ -182,8 +182,15 @@ export function generateSignatureHtml(
 
           <!-- Designation -->
           <tr>
-            <td style="padding-bottom: 14px;">
+            <td style="padding-bottom: 4px;">
               <span style="font-size: 14px; color: #4b5563; display: block;">${designation}</span>
+            </td>
+          </tr>
+
+          <!-- Company Name (left column) -->
+          <tr>
+            <td style="padding-bottom: 14px;">
+              <span style="font-size: 13px; color: #374151; display: block; white-space: nowrap;">${companyName}</span>
             </td>
           </tr>
 
