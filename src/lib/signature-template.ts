@@ -87,7 +87,7 @@ export function generateSignatureHtml(
       .map(
         (cert, i) => `
       <td style="${i < activeCerts.length - 1 ? "padding-right: 14px;" : ""}">
-        <img src="${cert.image}" alt="${cert.alt ?? cert.name}" height="54" style="height: 54px; width: auto; display: block;" />
+        <img src="${cert.image}" alt="${cert.alt ?? cert.name}" height="70" style="height: 70px; width: auto; display: block;" />
       </td>`
       )
       .join("");
