@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
+import Credentials from "next-auth/providers/credentials";
 import type { NextAuthConfig } from "next-auth";
 import { prisma } from "@/lib/prisma";
 
@@ -20,31 +21,61 @@ export const authConfig: NextAuthConfig = {
         },
       },
     }),
+    // Root/break-glass login: username + password from env, used via the
+    // unlisted /root page when Microsoft login is unavailable.
+    Credentials({
+      id: "root-credentials",
+      name: "Root",
+      credentials: {
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      authorize: (credentials) => {
+        const rootEmail = process.env.ROOT_USER_EMAIL?.trim();
+        const rootPass = process.env.ROOT_USER_PASS;
+
+        if (!rootEmail || !rootPass) return null;
+
+        const email = String(credentials?.email ?? "").trim();
+        const password = String(credentials?.password ?? "");
+
+        if (
+          email.toLowerCase() === rootEmail.toLowerCase() &&
+          password === rootPass
+        ) {
+          return { email: rootEmail, name: "Root User" };
+        }
+
+        return null;
+      },
+    }),
   ],
   basePath: "/api/auth",
   pages: {
     signIn: "/login",
   },
   callbacks: {
-    async signIn({ user, profile }) {
-      console.log("[AUTH] signIn callback - user.email:", user.email);
-      console.log("[AUTH] signIn callback - profile:", JSON.stringify(profile, null, 2));
-      console.log("[AUTH] adminEmails:", adminEmails);
-      
+    async signIn({ user, account }) {
       if (!user.email) return false;
       const email = user.email.toLowerCase();
-      console.log("[AUTH] Checking email:", email, "against adminEmails:", adminEmails);
-      console.log("[AUTH] Is included:", adminEmails.includes(email));
-      
-      if (adminEmails.length > 0 && !adminEmails.includes(email)) {
-        console.log("[AUTH] Access denied - email not in admin list");
+
+      const isRoot = account?.provider === "root-credentials";
+
+      // The ADMIN_EMAILS allowlist only gates Microsoft logins. Root login is
+      // already validated against ROOT_USER_EMAIL/ROOT_USER_PASS in authorize().
+      if (!isRoot && adminEmails.length > 0 && !adminEmails.includes(email)) {
         return false;
       }
 
       await prisma.user.upsert({
         where: { email },
         update: { name: user.name, image: user.image },
-        create: { email, name: user.name, image: user.image, role: "admin" },
+        create: {
+          email,
+          name: user.name,
+          image: user.image,
+          role: isRoot ? "root" : "admin",
+        },
       });
 
       return true;

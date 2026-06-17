@@ -8,6 +8,8 @@ export async function proxy(request: NextRequest) {
   const isAuthRoute = pathname.startsWith("/api/auth");
   const isSignatureApi = pathname.startsWith("/api/signature");
   const isLoginPage = pathname === "/login";
+  // Unlisted root/break-glass login page — must be reachable without a session.
+  const isRootLoginPage = pathname === "/root";
   // Office add-in well-known allow-list (.well-known/microsoft-officeaddins-allowed.json).
   // Classic Outlook on Windows fetches this to authorize the event-based JS runtime; it must
   // return the raw JSON, not an auth redirect.
@@ -18,7 +20,7 @@ export async function proxy(request: NextRequest) {
     pathname.endsWith(".xml") ||
     pathname.endsWith(".png");
 
-  if (isAuthRoute || isSignatureApi || isLoginPage || isWellKnown || isOfficeAddin) {
+  if (isAuthRoute || isSignatureApi || isLoginPage || isRootLoginPage || isWellKnown || isOfficeAddin) {
     return NextResponse.next();
   }
 
