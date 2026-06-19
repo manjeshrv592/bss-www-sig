@@ -30,12 +30,25 @@ export default async function UserProfilePage(props: {
   ]);
   const groupNameMap = new Map(groupsMap.map((g) => [g.id, g.displayName]));
 
-  const initials = user.displayName
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) ?? "?";
+  // Prefer first name + last name. The Microsoft displayName often includes a
+  // company suffix (e.g. "Nikhil - Blackstone Shipping"), so use it only as a fallback.
+  const fullName =
+    [user.givenName, user.surname].filter(Boolean).join(" ") || user.displayName || "—";
+
+  const initials =
+    [user.givenName, user.surname]
+      .filter(Boolean)
+      .map((n) => n![0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) ||
+    user.displayName
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) ||
+    "?";
 
   const details = [
     { icon: Mail, label: "Email", value: user.email },
@@ -70,7 +83,7 @@ export default async function UserProfilePage(props: {
             <Avatar className="h-20 w-20 mb-4">
               <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
             </Avatar>
-            <h2 className="text-lg font-semibold">{user.displayName ?? "—"}</h2>
+            <h2 className="text-lg font-semibold">{fullName}</h2>
             <p className="text-sm text-muted-foreground">{user.jobTitle ?? "No title"}</p>
             <p className="text-xs text-muted-foreground mt-1">{user.department ?? ""}</p>
             <div className="mt-4 w-full space-y-2 text-left">
