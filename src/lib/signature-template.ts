@@ -56,8 +56,13 @@ export function generateSignatureHtml(
 ): string {
   const options = { ...DEFAULT_OPTIONS, ...opts };
 
-  const fullName = user.displayName
-    ?? ([user.givenName, user.surname].filter(Boolean).join(" ") || "");
+  // Prefer first name + last name. The Microsoft displayName often includes a
+  // company suffix (e.g. "Nikhil - Blackstone Shipping"), so only use it as a
+  // fallback when givenName/surname aren't available.
+  const fullName =
+    [user.givenName, user.surname].filter(Boolean).join(" ")
+    || user.displayName
+    || "";
   const designation = user.jobTitle ?? "";
   const contactNumber = user.mobilePhone ?? "";
   const telephoneNumber = user.businessPhones?.[0] ?? "";
