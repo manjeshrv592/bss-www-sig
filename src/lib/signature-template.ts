@@ -72,19 +72,18 @@ export function generateSignatureHtml(
   const companyName = user.companyName || options.defaultCompanyName || "";
   const website = options.website || "";
 
-  // Build multi-line address: street / city, state postalCode / country
+  // Build address over two lines:
+  //   Line 1: street address, city
+  //   Line 2: state/province, country, zipcode
   const addressLines: string[] = [];
-  if (user.streetAddress) addressLines.push(user.streetAddress);
 
-  const cityLine = [
-    [user.city, user.state].filter(Boolean).join(", "),
-    user.postalCode,
-  ]
+  const line1 = [user.streetAddress, user.city].filter(Boolean).join(", ");
+  if (line1) addressLines.push(line1);
+
+  const line2 = [user.state, user.country, user.postalCode]
     .filter(Boolean)
-    .join(" ");
-  if (cityLine) addressLines.push(cityLine);
-
-  if (user.country) addressLines.push(user.country);
+    .join(", ");
+  if (line2) addressLines.push(line2);
 
   const hasAddress = addressLines.length > 0;
 
