@@ -72,7 +72,10 @@ export interface GraphUser {
   jobTitle: string | null;
   department: string | null;
   officeLocation: string | null;
+  streetAddress: string | null;
   city: string | null;
+  state: string | null;
+  postalCode: string | null;
   country: string | null;
   companyName: string | null;
   mobilePhone: string | null;
@@ -95,7 +98,10 @@ const USER_SELECT = [
   "jobTitle",
   "department",
   "officeLocation",
+  "streetAddress",
   "city",
+  "state",
+  "postalCode",
   "country",
   "companyName",
   "mobilePhone",

@@ -12,7 +12,10 @@ interface SignatureUser {
   mobilePhone: string | null;
   businessPhones: string[];
   officeLocation: string | null;
+  streetAddress: string | null;
   city: string | null;
+  state: string | null;
+  postalCode: string | null;
   country: string | null;
   companyName: string | null;
 }
@@ -69,20 +72,21 @@ export function generateSignatureHtml(
   const companyName = user.companyName || options.defaultCompanyName || "";
   const website = options.website || "";
 
-  // Build multi-line address
-  // const addressLine1Parts: string[] = [];
-  // if (user.officeLocation) addressLine1Parts.push(user.officeLocation);
+  // Build multi-line address: street / city, state postalCode / country
+  const addressLines: string[] = [];
+  if (user.streetAddress) addressLines.push(user.streetAddress);
 
-  const addressLine2Parts: string[] = [];
-  if (user.city) addressLine2Parts.push(user.city);
+  const cityLine = [
+    [user.city, user.state].filter(Boolean).join(", "),
+    user.postalCode,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  if (cityLine) addressLines.push(cityLine);
 
-  const addressLine3Parts: string[] = [];
-  if (user.country) addressLine3Parts.push(user.country);
+  if (user.country) addressLines.push(user.country);
 
-  const hasAddress =
-    // addressLine1Parts.length > 0 ||
-    addressLine2Parts.length > 0 ||
-    addressLine3Parts.length > 0;
+  const hasAddress = addressLines.length > 0;
 
   // Generate certification images HTML (all side by side in one row)
   let certificationsHtml = "";
@@ -108,12 +112,12 @@ export function generateSignatureHtml(
   const bannersHtml = banners
     .filter((b) => b.image)
     .map((banner) => {
-      const img = `<img src="${banner.image}" alt="${banner.alt ?? "Banner"}" width="600" style="width: 600px; height: auto; display: block;" />`;
+      const img = `<img src="${banner.image}" alt="${banner.alt ?? "Banner"}" width="500" style="width: 500px; height: auto; display: block;" />`;
       const wrapped = banner.link
         ? `<a href="${banner.link}" target="_blank" style="text-decoration: none;">${img}</a>`
         : img;
       return `
-    <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 15px; max-width: 600px; width: 100%;">
+    <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 15px; max-width: 500px; width: 100%;">
       <tr>
         <td>
           ${wrapped}
@@ -140,7 +144,7 @@ export function generateSignatureHtml(
       )
       .join("");
     legalTextHtml = `
-    <table cellpadding="0" cellspacing="0" border="0" width="600" style="width: 600px; table-layout: fixed;">
+    <table cellpadding="0" cellspacing="0" border="0" width="500" style="width: 500px; table-layout: fixed;">
       <tr>
         <td height="15" style="font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">&nbsp;</td>
       </tr>
@@ -156,11 +160,7 @@ export function generateSignatureHtml(
   // Use <br> instead of display:block spans — classic Outlook (Word renderer) ignores display:block on spans
   let addressHtml = "";
   if (hasAddress) {
-    const lines: string[] = [];
-    // if (addressLine1Parts.length > 0) lines.push(addressLine1Parts.join(", "));
-    if (addressLine2Parts.length > 0) lines.push(addressLine2Parts.join(", "));
-    if (addressLine3Parts.length > 0) lines.push(addressLine3Parts.join(", "));
-    addressHtml = lines.join("<br>");
+    addressHtml = addressLines.join("<br>");
   }
 
   return `
@@ -173,7 +173,7 @@ export function generateSignatureHtml(
 </head>
 <body style="margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <div id="bss-signature">
-  <table cellpadding="0" cellspacing="0" border="0" width="600" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #1f2937; width: 600px;">
+  <table cellpadding="0" cellspacing="0" border="0" width="500" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #1f2937; width: 500px;">
     <tr>
       <!-- Left Column: Name, Designation, Mobile -->
       <td style="vertical-align: top; padding-right: 30px;">
@@ -187,15 +187,8 @@ export function generateSignatureHtml(
 
           <!-- Designation -->
           <tr>
-            <td style="padding-bottom: 4px;">
-              <span style="font-size: 14px; color: #4b5563; display: block;">${designation}</span>
-            </td>
-          </tr>
-
-          <!-- Company Name (left column) -->
-          <tr>
             <td style="padding-bottom: 14px;">
-              <a href="${website}" target="_blank" style="font-size: 14px; font-weight: 700; color: #2563eb; text-decoration: none; display: block; white-space: nowrap;">${companyName}</a>
+              <span style="font-size: 14px; color: #4b5563; display: block;">${designation}</span>
             </td>
           </tr>
 
@@ -218,6 +211,15 @@ export function generateSignatureHtml(
           <tr>
             <td style="padding-bottom: 10px; text-align: right;">
               <img src="${options.logoUrl}" alt="${companyName}" height="70" style="height: 70px; width: auto; display: inline-block;" />
+            </td>
+          </tr>
+          ` : ""}
+
+          ${companyName ? `
+          <!-- Company Name (right column, below logo) -->
+          <tr>
+            <td style="padding-bottom: 10px; text-align: right;">
+              <a href="${website}" target="_blank" style="font-size: 14px; font-weight: 700; color: #2563eb; text-decoration: none; display: block; white-space: nowrap;">${companyName}</a>
             </td>
           </tr>
           ` : ""}
@@ -247,7 +249,7 @@ export function generateSignatureHtml(
   </table>
 
   <!-- Certifications (constrained to signature width) -->
-  <table cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; width: 100%;">
+  <table cellpadding="0" cellspacing="0" border="0" style="max-width: 500px; width: 100%;">
     <tr>
       <td style="text-align: right;">
         ${certificationsHtml}
@@ -258,7 +260,7 @@ export function generateSignatureHtml(
   ${legalTextHtml}
 
   <!-- Footer: width attribute + align attribute used for classic Outlook (Word renderer ignores width:100% CSS) -->
-  <table cellpadding="0" cellspacing="0" border="0" width="600" style="margin-top: 15px; width: 600px;">
+  <table cellpadding="0" cellspacing="0" border="0" width="500" style="margin-top: 15px; width: 500px;">
     <tr>
       <td style="font-size: 14px; color: #2563eb; font-weight: 600; white-space: nowrap;">
         ${options.tagline ?? ""}

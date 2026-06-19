@@ -47,7 +47,10 @@ model MsUser {
   jobTitle        String?  @map("job_title")
   department      String?
   officeLocation  String?  @map("office_location")
+  streetAddress   String?  @map("street_address")
   city            String?
+  state           String?
+  postalCode      String?  @map("postal_code")
   country         String?
   companyName     String?  @map("company_name")
   mobilePhone     String?  @map("mobile_phone")
