@@ -87,24 +87,21 @@ export function generateSignatureHtml(
 
   const hasAddress = addressLines.length > 0;
 
-  // Generate certification images HTML (all side by side in one row)
+  // Generate certification images HTML.
+  // Images are rendered inline (not as separate table cells) inside a single
+  // fixed-width cell so that when their combined width exceeds the signature
+  // width they wrap onto the next line instead of overflowing. Tables can't
+  // wrap, and flexbox/flex-wrap isn't supported in classic Outlook (Word
+  // renderer), so inline images are the email-safe way to get reflow.
   let certificationsHtml = "";
   const activeCerts = certifications.filter((c) => c.image);
   if (activeCerts.length > 0) {
-    const cells = activeCerts
+    certificationsHtml = activeCerts
       .map(
-        (cert, i) => `
-      <td style="${i < activeCerts.length - 1 ? "padding-right: 14px;" : ""}">
-        <img src="${cert.image}" alt="${cert.alt ?? cert.name}" height="50" style="height: 50px; width: auto; display: block;" />
-      </td>`
+        (cert) =>
+          `<img src="${cert.image}" alt="${cert.alt ?? cert.name}" height="50" style="height: 50px; width: auto; display: inline-block; vertical-align: middle; margin: 0 0 10px 14px;" />`
       )
       .join("");
-    certificationsHtml = `
-    <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 15px; margin-left: auto;">
-      <tr>
-        ${cells}
-      </tr>
-    </table>`;
   }
 
   // Generate banner images HTML
@@ -247,14 +244,16 @@ export function generateSignatureHtml(
     </tr>
   </table>
 
-  <!-- Certifications (constrained to signature width) -->
-  <table cellpadding="0" cellspacing="0" border="0" style="max-width: 500px; width: 100%;">
+  <!-- Certifications (fixed signature width; logos wrap to next row when they overflow) -->
+  ${activeCerts.length > 0 ? `
+  <table cellpadding="0" cellspacing="0" border="0" width="500" style="margin-top: 15px; width: 500px; table-layout: fixed;">
     <tr>
-      <td style="text-align: right;">
+      <td align="right" style="text-align: right; line-height: 0; font-size: 0;">
         ${certificationsHtml}
       </td>
     </tr>
   </table>
+  ` : ""}
   ${bannersHtml}
   ${legalTextHtml}
 
