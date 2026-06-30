@@ -99,7 +99,7 @@ export function generateSignatureHtml(
     certificationsHtml = activeCerts
       .map(
         (cert) =>
-          `<img src="${cert.image}" alt="${cert.alt ?? cert.name}" height="50" style="height: 50px; width: auto; display: inline-block; vertical-align: middle; margin: 0 0 10px 14px;" />`
+          `<img src="${cert.image}" alt="${cert.alt ?? cert.name}" height="75" style="height: 75px; width: auto; display: inline-block; vertical-align: middle; margin: 0 0 10px 14px;" />`
       )
       .join("");
   }
