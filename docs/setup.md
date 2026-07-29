@@ -12,7 +12,7 @@ This guide walks through configuring Microsoft Azure for the BSS Signature app. 
    - **Name**: `BSS Signature`
    - **Supported account types**: Accounts in this organizational directory only (Single tenant)
    - **Redirect URI**: Web → `https://<YOUR_DOMAIN>/api/auth/callback/microsoft-entra-id`
-<!-- https://blackstone.simtechitsolutions.in:8123/api/auth/callback/microsoft-entra-id -->
+   <!-- https://blackstone.simtechitsolutions.in:8123/api/auth/callback/microsoft-entra-id -->
 
 4. Click **Register**
 5. Note down:
@@ -43,9 +43,11 @@ http://localhost:3000/api/auth/callback/microsoft-entra-id
 https://<STAGING_URL>/api/auth/callback/microsoft-entra-id
 https://<PRODUCTION_URL>/api/auth/callback/microsoft-entra-id
 ```
+
 <!-- https://blackstone.simtechitsolutions.in:8123/api/auth/callback/microsoft-entra-id -->
 
 Under **Implicit grant and hybrid flows**:
+
 - ✅ ID tokens
 - ❌ Access tokens
 
@@ -57,17 +59,17 @@ Go to **API permissions** → **+ Add a permission** → **Microsoft Graph**
 
 ### Delegated Permissions
 
-| Permission | Purpose |
-|---|---|
-| `openid` | Required for login (OpenID Connect) |
-| `profile` | Get user name/info during login |
+| Permission | Purpose                             |
+| ---------- | ----------------------------------- |
+| `openid`   | Required for login (OpenID Connect) |
+| `profile`  | Get user name/info during login     |
 
 ### Application Permissions
 
-| Permission | Purpose |
-|---|---|
-| `User.Read.All` | Sync all users from the organization |
-| `Group.Read.All` | Sync all groups from the organization |
+| Permission             | Purpose                                     |
+| ---------------------- | ------------------------------------------- |
+| `User.Read.All`        | Sync all users from the organization        |
+| `Group.Read.All`       | Sync all groups from the organization       |
 | `GroupMember.Read.All` | Read group memberships for assignment rules |
 
 ### Grant Admin Consent
@@ -79,6 +81,7 @@ After adding all permissions, click **"Grant admin consent for [Organization]"**
 ### Permissions to Remove (if present)
 
 Remove any previously added delegated versions of:
+
 - `User.Read.All` (delegated)
 - `Group.Read.All` (delegated)
 - `GroupMember.Read.All` (delegated)
@@ -100,6 +103,7 @@ api://<YOUR_DOMAIN>/<APPLICATION_CLIENT_ID>
 ```
 
 Examples:
+
 - Staging: `api://bss-www-sig.vercel.app/<CLIENT_ID>`
 - Production: `api://blackstone.simtechitsolutions.in/80c4e4bb-8b7f-4a99-8364-ee587b08670d`
 
@@ -109,15 +113,15 @@ Examples:
 
 Click **+ Add a scope** and fill in:
 
-| Field | Value |
-|---|---|
-| Scope name | `access_as_user` |
-| Who can consent | Admins and users |
-| Admin consent display name | `Access BSS Signature as user` |
-| Admin consent description | `Allow Office to call BSS Signature API on behalf of the signed-in user` |
-| User consent display name | `Access BSS Signature` |
-| User consent description | `Allow Office to access your email signature on your behalf` |
-| State | Enabled |
+| Field                      | Value                                                                    |
+| -------------------------- | ------------------------------------------------------------------------ |
+| Scope name                 | `access_as_user`                                                         |
+| Who can consent            | Admins and users                                                         |
+| Admin consent display name | `Access BSS Signature as user`                                           |
+| Admin consent description  | `Allow Office to call BSS Signature API on behalf of the signed-in user` |
+| User consent display name  | `Access BSS Signature`                                                   |
+| User consent description   | `Allow Office to access your email signature on your behalf`             |
+| State                      | Enabled                                                                  |
 
 ### Authorized Client Applications
 
@@ -125,14 +129,14 @@ Scroll down to **Authorized client applications** → **+ Add a client applicati
 
 For each Client ID below, check the `access_as_user` scope and click **Add application**:
 
-| Client ID | Application |
-|---|---|
-| `ea5a67f6-b6f3-4338-b240-c655ddc3cc8e` | Microsoft 365 desktop/mobile |
-| `d3590ed6-52b3-4102-aeff-aad2292ab01c` | Microsoft Office desktop |
-| `57fb890c-0dab-4253-a5e0-7188c88b2bb4` | Office on the web |
+| Client ID                              | Application                   |
+| -------------------------------------- | ----------------------------- |
+| `ea5a67f6-b6f3-4338-b240-c655ddc3cc8e` | Microsoft 365 desktop/mobile  |
+| `d3590ed6-52b3-4102-aeff-aad2292ab01c` | Microsoft Office desktop      |
+| `57fb890c-0dab-4253-a5e0-7188c88b2bb4` | Office on the web             |
 | `08e18876-6177-487e-b8b5-cf950c1e598c` | Office on the web (alternate) |
-| `bc59ab01-8403-45c6-8796-ac3ef710b3e3` | Outlook on the web |
-| `93d53678-613d-4013-afc1-62e9e444a0a5` | Office on the web (another) |
+| `bc59ab01-8403-45c6-8796-ac3ef710b3e3` | Outlook on the web            |
+| `93d53678-613d-4013-afc1-62e9e444a0a5` | Office on the web (another)   |
 
 > These are Microsoft's fixed client IDs — same for every tenant.
 
@@ -143,6 +147,7 @@ For each Client ID below, check the `access_as_user` scope and click **Add appli
 Go to **Token configuration** → **+ Add optional claim** → **ID token**
 
 Select:
+
 - ✅ `email`
 - ✅ `preferred_username`
 
@@ -256,8 +261,8 @@ Use `public/production/443/manifest.xml` — all URLs point to `https://blacksto
 2. The manifest files are pre-configured per environment:
    - `public/local/manifest.xml` → `http://localhost:3000`
    - `public/staging/manifest.xml` → `https://bss-www-sig.vercel.app`
-   - `public/production/manifest.xml` → `https://blackstone.simtechitsolutions.in:8123` *(non-standard port — may fail MS validation)*
-   - `public/production/443/manifest.xml` → `https://blackstone.simtechitsolutions.in` *(standard port 443 via Nginx — use this for Admin Center upload)*
+   - `public/production/manifest.xml` → `https://blackstone.simtechitsolutions.in:8123` _(non-standard port — may fail MS validation)_
+   - `public/production/443/manifest.xml` → `https://blackstone.simtechitsolutions.in` _(standard port 443 via Nginx — use this for Admin Center upload)_
    - Each manifest has a **unique `<Id>`** (add-in GUID) — do not change these
    - If using a new tenant, update `<WebApplicationInfo><Id>` with the new `AZURE_AD_CLIENT_ID` and `<Resource>` with the new `AZURE_AD_APP_URI`
 3. Go to **Microsoft 365 Admin Center** → **Settings** → **Integrated Apps**
@@ -268,6 +273,7 @@ Use `public/production/443/manifest.xml` — all URLs point to `https://blacksto
 ### First-time User Flow
 
 SSO consent must be granted once per user account:
+
 1. User opens Outlook → compose a new email
 2. Click **"Sign In"** button in the BSS Signature group → taskpane opens → consent granted
 3. After consent, **"Insert Signature"** works silently without prompting
@@ -276,6 +282,7 @@ SSO consent must be granted once per user account:
 ### Testing / Sideloading (no 4-hour wait)
 
 To test without waiting for Admin Center propagation:
+
 1. Go to `https://aka.ms/olksideload` (or `https://outlook.office.com/mail/options/general/manageAddIns`)
 2. Scroll to **Custom add-ins** → **+ Add from file**
 3. Upload the manifest XML — takes effect immediately for your account only
