@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Search } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Users } from "lucide-react";
 import { SyncButton } from "./sync-button";
 import { UserSearch } from "./user-search";
 import { LocaleDate } from "@/components/locale-date";

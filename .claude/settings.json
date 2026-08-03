@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp \"C:\\\\Users\\\\Admin\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--done-bss-www-sig\\\\0657cdf1-ddad-4813-8d51-ae05d3ffecae\\\\scratchpad\\\\verify.ts\" ./__verify.ts)",
+      "Bash(npx tsx *)",
+      "Bash(node \"C:\\\\Users\\\\Admin\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--done-bss-www-sig\\\\0657cdf1-ddad-4813-8d51-ae05d3ffecae\\\\scratchpad\\\\check.js\")",
+      "Bash(npx prisma *)"
+    ]
+  }
+}

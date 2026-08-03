@@ -147,8 +147,8 @@
       </Resources>
 
       <WebApplicationInfo>
-        <Id>13fd73e4-b4c0-42e1-b501-487ca433221d</Id>
-        <Resource>api://bss-www-sig.vercel.app/13fd73e4-b4c0-42e1-b501-487ca433221d</Resource>
+        <Id>ed2272a4-1857-4f80-8ee3-432fff493c3c</Id>
+        <Resource>api://bss-www-sig.vercel.app/ed2272a4-1857-4f80-8ee3-432fff493c3c</Resource>
         <Scopes>
           <Scope>openid</Scope>
           <Scope>profile</Scope>

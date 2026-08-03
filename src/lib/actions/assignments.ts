@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 const SCOPE_LABELS: Record<string, string> = {
   global: "Global",
   country: "Country",
+  state: "State / Province",
   job_title: "Job Title",
   group: "Group",
 };

@@ -9,14 +9,8 @@ Office.onReady(function (info) {
   console.log("=== Office.onReady ===");
   console.log("Host:", info.host);
   console.log("Platform:", info.platform);
-  
+
   if (info.host === Office.HostType.Outlook) {
-    // Log available context info for debugging
-    console.log("Mailbox:", Office.context.mailbox);
-    console.log("UserProfile:", Office.context.mailbox?.userProfile);
-    console.log("Email:", Office.context.mailbox?.userProfile?.emailAddress);
-    console.log("Item:", Office.context.mailbox?.item);
-    
     setStatus("loading", "Fetching your signature...");
     fetchSignature();
   } else {
@@ -34,45 +28,63 @@ function setButtonState(enabled) {
   document.getElementById("btnApply").disabled = !enabled;
 }
 
-var SKIP_AUTH = false;
-
-// Helper to decode JWT and extract email
-function getEmailFromToken(token) {
-  try {
-    var parts = token.split('.');
-    if (parts.length !== 3) return null;
-    var payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-    return payload.preferred_username || payload.upn || payload.email || null;
-  } catch (e) {
-    console.error("Error decoding token:", e);
-    return null;
-  }
+function hidePicker() {
+  document.getElementById("pickerSection").style.display = "none";
+  document.getElementById("pickerList").innerHTML = "";
 }
 
-async function fetchSignature() {
+var SKIP_AUTH = false;
+
+/**
+ * Read the sending address off the compose item. For a shared mailbox this is
+ * the same for everyone, so on its own it can't identify the sender.
+ */
+function getFromAddress() {
+  return new Promise(function (resolve) {
+    try {
+      var item = Office.context.mailbox && Office.context.mailbox.item;
+      if (item && item.from && typeof item.from.getAsync === "function") {
+        item.from.getAsync(function (result) {
+          if (
+            result.status === Office.AsyncResultStatus.Succeeded &&
+            result.value &&
+            result.value.emailAddress
+          ) {
+            resolve(result.value.emailAddress);
+          } else {
+            resolve(null);
+          }
+        });
+        return;
+      }
+    } catch (e) {
+      console.log("from.getAsync failed:", e);
+    }
+    resolve(null);
+  });
+}
+
+async function fetchSignature(selectedUserId) {
   try {
     setButtonState(false);
+    hidePicker();
 
-    var email = null;
     var headers = {};
     var token = null;
-    
-    // Step 1: Try to get SSO token first (this also authenticates the user)
+
+    // The SSO token identifies the person signed in to Outlook. A shared
+    // mailbox has sign-in blocked and can never issue one, so whenever we get a
+    // token it names a real human — that's what makes shared mailboxes work.
     if (!SKIP_AUTH) {
       try {
-        token = await Office.auth.getAccessToken({ allowSignInPrompt: true, allowConsentPrompt: true });
+        token = await Office.auth.getAccessToken({
+          allowSignInPrompt: true,
+          allowConsentPrompt: true,
+        });
         headers["Authorization"] = "Bearer " + token;
-        console.log("SSO token obtained successfully");
-        
-        // Try to extract email from token
-        var tokenEmail = getEmailFromToken(token);
-        if (tokenEmail) {
-          email = tokenEmail;
-          console.log("Email from SSO token:", email);
-        }
+        console.log("SSO token obtained");
       } catch (ssoErr) {
         console.error("SSO Error:", ssoErr.code, ssoErr.message);
-        // Handle specific SSO error codes
         if (ssoErr.code === 13001) {
           throw new Error("User not signed into Office. Please sign in with your Microsoft work account.");
         } else if (ssoErr.code === 13002) {
@@ -90,47 +102,30 @@ async function fetchSignature() {
         }
       }
     }
-    
-    // Step 2: If no email from token, try userProfile
-    if (!email && Office.context.mailbox && Office.context.mailbox.userProfile) {
-      email = Office.context.mailbox.userProfile.emailAddress;
-      console.log("Email from userProfile:", email);
-    }
-    
-    // Step 3: If still no email, try item.from (compose mode)
-    if (!email && Office.context.mailbox && Office.context.mailbox.item) {
-      try {
-        var item = Office.context.mailbox.item;
-        if (item.from && typeof item.from.getAsync === 'function') {
-          email = await new Promise(function(resolve) {
-            item.from.getAsync(function(result) {
-              if (result.status === Office.AsyncResultStatus.Succeeded && result.value) {
-                resolve(result.value.emailAddress);
-              } else {
-                resolve(null);
-              }
-            });
-          });
-          console.log("Email from item.from:", email);
-        }
-      } catch (e) {
-        console.log("Error getting from:", e);
-      }
-    }
-    
-    if (!email) {
-      console.error("No email found. Context:", {
-        mailbox: !!Office.context.mailbox,
-        userProfile: !!Office.context.mailbox?.userProfile,
-        item: !!Office.context.mailbox?.item,
-        tokenObtained: !!token
-      });
-      throw new Error("Could not determine your email address. Please ensure you're signed into Office with your work account.");
+
+    // Sending address. Falls back to userProfile, which in a delegated mailbox
+    // may report the mailbox owner rather than the signed-in person — fine,
+    // because the token above is what actually decides identity.
+    var fromEmail = await getFromAddress();
+    if (!fromEmail && Office.context.mailbox && Office.context.mailbox.userProfile) {
+      fromEmail = Office.context.mailbox.userProfile.emailAddress;
     }
 
-    var response = await fetch(API_URL + "?email=" + encodeURIComponent(email), {
-      headers: headers
-    });
+    if (!fromEmail) {
+      throw new Error("Could not determine the sending address. Please ensure you're signed into Office with your work account.");
+    }
+
+    var url = API_URL + "?email=" + encodeURIComponent(fromEmail);
+    if (selectedUserId) url += "&as=" + encodeURIComponent(selectedUserId);
+
+    var response = await fetch(url, { headers: headers });
+
+    // 409 = shared mailbox, sender not identifiable. Ask who they are.
+    if (response.status === 409) {
+      var picker = await response.json();
+      renderPicker(picker);
+      return;
+    }
 
     if (!response.ok) {
       var errData;
@@ -139,18 +134,71 @@ async function fetchSignature() {
     }
 
     cachedSignatureHtml = await response.text();
+    var appliedFor = response.headers.get("X-Signature-User") || fromEmail;
+    var viaShared = response.headers.get("X-Signature-Via-Shared-Mailbox") === "true";
 
-    // Show preview
     document.getElementById("previewBody").innerHTML = cachedSignatureHtml;
     document.getElementById("previewSection").style.display = "block";
 
-    setStatus("success", "Signature loaded for " + email);
+    setStatus(
+      "success",
+      viaShared
+        ? "Signature loaded for " + appliedFor + " (sending from " + fromEmail + ")"
+        : "Signature loaded for " + appliedFor
+    );
     setButtonState(true);
   } catch (err) {
     console.error("Fetch signature error:", err);
     setStatus("error", err.message || "Unknown error occurred");
     setButtonState(false);
   }
+}
+
+function renderPicker(payload) {
+  var section = document.getElementById("pickerSection");
+  var header = document.getElementById("pickerHeader");
+  var list = document.getElementById("pickerList");
+
+  var candidates = payload.candidates || [];
+  list.innerHTML = "";
+
+  if (candidates.length === 0) {
+    header.textContent =
+      payload.sharedMailbox +
+      " is a shared mailbox, but no members have been configured. Ask an admin to add them in Shared Mailboxes.";
+    section.style.display = "block";
+    setStatus("error", "No signature available for this shared mailbox.");
+    return;
+  }
+
+  header.textContent =
+    "Sending from the shared mailbox " +
+    payload.sharedMailbox +
+    ". Select who you are to apply the right signature.";
+
+  candidates.forEach(function (c) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "picker-item";
+
+    var nameEl = document.createElement("span");
+    nameEl.textContent = c.name;
+    btn.appendChild(nameEl);
+
+    var emailEl = document.createElement("span");
+    emailEl.className = "email";
+    emailEl.textContent = c.email;
+    btn.appendChild(emailEl);
+
+    btn.onclick = function () {
+      setStatus("loading", "Loading signature for " + c.name + "...");
+      fetchSignature(c.id);
+    };
+    list.appendChild(btn);
+  });
+
+  section.style.display = "block";
+  setStatus("loading", "Select who is sending.");
 }
 
 function applySignature() {
@@ -183,6 +231,7 @@ function applySignature() {
 function refreshSignature() {
   cachedSignatureHtml = null;
   document.getElementById("previewSection").style.display = "none";
+  hidePicker();
   setStatus("loading", "Refreshing signature...");
   fetchSignature();
 }

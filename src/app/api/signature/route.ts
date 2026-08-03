@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyOfficeToken } from "@/lib/azure-token";
 import { resolveSignature } from "@/lib/signature-resolver";
 import { generateSignatureHtml } from "@/lib/signature-template";
+import { resolveSender } from "@/lib/shared-mailbox";
 
 // Optimize for faster response
 export const dynamic = "force-dynamic";
@@ -15,40 +16,47 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     let email: string | undefined;
+    // The human at the keyboard, per the verified Office SSO token. A shared
+    // mailbox has sign-in blocked and can never produce a token, so this is
+    // always a real person — that is what makes shared mailboxes resolvable.
+    let signedInEmail: string | undefined;
 
     // Check if this is a trusted request from Office add-in (auto-insert fallback)
     const trustedSource = searchParams.get("trusted");
-    
-    if (SKIP_AUTH || trustedSource === "office") {
-      // No auth — just use email from query param
-      // trusted=office is used by auto-insert when SSO token isn't available
-      // This is safe because the email comes from Office.context which is trusted
+
+    const authHeader = request.headers.get("authorization");
+    const hasToken = authHeader?.startsWith("Bearer ") ?? false;
+
+    if (hasToken) {
+      // Always verify a token when one is supplied, even in SKIP_AUTH mode:
+      // it is the only trustworthy way to identify a shared mailbox sender.
+      const token = authHeader!.slice(7);
+      try {
+        const tokenPayload = await verifyOfficeToken(token);
+        signedInEmail =
+          tokenPayload.preferred_username?.toLowerCase() ??
+          tokenPayload.upn?.toLowerCase() ??
+          tokenPayload.email?.toLowerCase();
+        email = searchParams.get("email")?.toLowerCase() ?? signedInEmail;
+      } catch (err) {
+        // In SKIP_AUTH / trusted mode a bad token is not fatal — we simply
+        // cannot identify the sender and may fall back to manual selection.
+        if (!SKIP_AUTH && trustedSource !== "office") {
+          const message =
+            err instanceof Error ? err.message : "Token verification failed";
+          return NextResponse.json({ error: message }, { status: 401 });
+        }
+        email = searchParams.get("email")?.toLowerCase();
+      }
+    } else if (SKIP_AUTH || trustedSource === "office") {
+      // No auth — just use email from query param.
+      // trusted=office is used by auto-insert when SSO token isn't available.
       email = searchParams.get("email")?.toLowerCase();
     } else {
-      // 1. Verify Azure token
-      const authHeader = request.headers.get("authorization");
-      if (!authHeader?.startsWith("Bearer ")) {
-        return NextResponse.json(
-          { error: "Missing or invalid Authorization header" },
-          { status: 401 }
-        );
-      }
-
-      const token = authHeader.slice(7);
-      let tokenPayload;
-      try {
-        tokenPayload = await verifyOfficeToken(token);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Token verification failed";
-        return NextResponse.json({ error: message }, { status: 401 });
-      }
-
-      // Get email from query param or from token
-      email =
-        searchParams.get("email")?.toLowerCase() ??
-        tokenPayload.preferred_username?.toLowerCase() ??
-        tokenPayload.upn?.toLowerCase() ??
-        tokenPayload.email?.toLowerCase();
+      return NextResponse.json(
+        { error: "Missing or invalid Authorization header" },
+        { status: 401 }
+      );
     }
 
     if (!email) {
@@ -58,14 +66,43 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 3. Find user
-    const user = await prisma.msUser.findFirst({
-      where: { email: { equals: email, mode: "insensitive" } },
+    // 3. Work out whose signature this is. For a shared mailbox the "from"
+    //    address is the same for everyone, so the signed-in identity decides.
+    const sender = await resolveSender({
+      fromEmail: email,
+      signedInEmail,
+      selectedMsUserId: searchParams.get("as"),
+    });
+
+    if (sender.status === "not_found") {
+      return NextResponse.json(
+        { error: `User not found: ${sender.email}` },
+        { status: 404 }
+      );
+    }
+
+    if (sender.status === "needs_selection") {
+      // 409: the request is valid but we cannot tell who is sending. The
+      // add-in shows these candidates and retries with ?as=<id>.
+      return NextResponse.json(
+        {
+          error: "shared_mailbox_requires_selection",
+          message:
+            `${sender.sharedMailboxEmail} is a shared mailbox and the sender could not be identified. Choose who is sending.`,
+          sharedMailbox: sender.sharedMailboxEmail,
+          candidates: sender.candidates,
+        },
+        { status: 409 }
+      );
+    }
+
+    const user = await prisma.msUser.findUnique({
+      where: { id: sender.msUserId },
     });
 
     if (!user) {
       return NextResponse.json(
-        { error: `User not found: ${email}` },
+        { error: `User not found: ${sender.email}` },
         { status: 404 }
       );
     }
@@ -91,8 +128,11 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": "text/html; charset=utf-8",
-        // Cache for 5 minutes on CDN, revalidate in background
-        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+        // Identifies whose signature this is — useful for the add-in UI.
+        "X-Signature-User": user.email,
+        "X-Signature-Via-Shared-Mailbox": String(sender.viaSharedMailbox),
+        // Per-user content behind a shared URL: never cache on shared CDNs.
+        "Cache-Control": "private, no-store",
       },
     });
   } catch (error) {

@@ -50,14 +50,17 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
       prisma.certification.findMany({
         where: { id: { in: certIds }, isActive: true },
         select: { id: true, name: true, image: true, alt: true },
+        orderBy: { sortOrder: "asc" },
       }),
       prisma.banner.findMany({
         where: { id: { in: bannerIds }, isActive: true },
         select: { id: true, name: true, image: true, alt: true, link: true },
+        orderBy: { sortOrder: "asc" },
       }),
       prisma.legalText.findMany({
         where: { id: { in: legalIds }, isActive: true },
         select: { id: true, name: true, content: true },
+        orderBy: { sortOrder: "asc" },
       }),
     ]);
 
@@ -72,6 +75,9 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
 
   if (user.country) {
     scopeConditions.push({ scope: "country", scopeValue: user.country });
+  }
+  if (user.state) {
+    scopeConditions.push({ scope: "state", scopeValue: user.state });
   }
   if (user.jobTitle) {
     scopeConditions.push({ scope: "job_title", scopeValue: user.jobTitle });
@@ -116,6 +122,7 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
       ? prisma.certification.findMany({
           where: { id: { in: [...certIdSet] }, isActive: true },
           select: { id: true, name: true, image: true, alt: true },
+          orderBy: { sortOrder: "asc" },
         })
       : Promise.resolve([]),
     bannerIdSet.size > 0
@@ -137,12 +144,14 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
             ],
           },
           select: { id: true, name: true, image: true, alt: true, link: true },
+          orderBy: { sortOrder: "asc" },
         })
       : Promise.resolve([]),
     legalIdSet.size > 0
       ? prisma.legalText.findMany({
           where: { id: { in: [...legalIdSet] }, isActive: true },
           select: { id: true, name: true, content: true },
+          orderBy: { sortOrder: "asc" },
         })
       : Promise.resolve([]),
   ]);

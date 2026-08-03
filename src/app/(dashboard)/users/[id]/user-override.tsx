@@ -72,7 +72,7 @@ export function UserOverrideManager({
 
   const handleSave = () => {
     // Include currently selected resource if not yet added
-    let finalOverrides = [...overrides];
+    const finalOverrides = [...overrides];
     if (addId) {
       const exists = finalOverrides.some((o) => o.resourceType === addType && o.resourceId === addId);
       if (!exists) {

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { AssignmentManager } from "./assignment-manager";
 
 export default async function AssignmentsPage() {
-  const [assignments, certifications, banners, legalTexts, countries, jobTitles, groups] =
+  const [assignments, certifications, banners, legalTexts, countries, states, jobTitles, groups] =
     await Promise.all([
       prisma.assignment.findMany({ orderBy: { createdAt: "desc" } }),
       prisma.certification.findMany({
@@ -26,6 +26,12 @@ export default async function AssignmentsPage() {
         distinct: ["country"],
         orderBy: { country: "asc" },
       }),
+      prisma.msUser.findMany({
+        where: { state: { not: null } },
+        select: { state: true },
+        distinct: ["state"],
+        orderBy: { state: "asc" },
+      }),
       prisma.jobTitle.findMany({
         select: { title: true },
         orderBy: { title: "asc" },
@@ -39,6 +45,9 @@ export default async function AssignmentsPage() {
   const countryList = countries
     .map((c) => c.country)
     .filter((c): c is string => c !== null);
+  const stateList = states
+    .map((s) => s.state)
+    .filter((s): s is string => s !== null);
   const jobTitleList = jobTitles.map((j) => j.title);
 
   return (
@@ -56,6 +65,7 @@ export default async function AssignmentsPage() {
         banners={banners}
         legalTexts={legalTexts}
         countries={countryList}
+        states={stateList}
         jobTitles={jobTitleList}
         groups={groups}
       />

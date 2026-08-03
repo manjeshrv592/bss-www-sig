@@ -11,7 +11,15 @@ export async function createCertification(data: {
   image?: string;
   alt?: string;
 }) {
-  const cert = await prisma.certification.create({ data });
+  // New certifications go to the end of the strip.
+  const last = await prisma.certification.findFirst({
+    orderBy: { sortOrder: "desc" },
+    select: { sortOrder: true },
+  });
+
+  const cert = await prisma.certification.create({
+    data: { ...data, sortOrder: (last?.sortOrder ?? -1) + 1 },
+  });
   await logActivity({
     action: `Created certification "${data.name}"`,
     entity: "certification",
@@ -19,6 +27,27 @@ export async function createCertification(data: {
   });
   revalidatePath("/certifications");
   return cert;
+}
+
+/**
+ * Persist a new certification order. `orderedIds` must be the full list of
+ * certification ids in their intended display order.
+ */
+export async function reorderCertifications(orderedIds: string[]) {
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.certification.update({
+        where: { id },
+        data: { sortOrder: index },
+      })
+    )
+  );
+
+  await logActivity({
+    action: `Reordered certifications`,
+    entity: "certification",
+  });
+  revalidatePath("/certifications");
 }
 
 export async function updateCertification(
@@ -55,9 +84,16 @@ export async function createBanner(data: {
   startDate?: string | null;
   endDate?: string | null;
 }) {
+  // New banners go to the end of the stack.
+  const last = await prisma.banner.findFirst({
+    orderBy: { sortOrder: "desc" },
+    select: { sortOrder: true },
+  });
+
   const banner = await prisma.banner.create({
     data: {
       ...data,
+      sortOrder: (last?.sortOrder ?? -1) + 1,
       startDate: data.startDate ? new Date(data.startDate) : null,
       endDate: data.endDate ? new Date(data.endDate) : null,
     },
@@ -125,13 +161,36 @@ export async function deleteBanner(id: string) {
   revalidatePath("/banners");
 }
 
+/**
+ * Persist a new banner order. `orderedIds` must be the full list of banner ids
+ * in their intended display order.
+ */
+export async function reorderBanners(orderedIds: string[]) {
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.banner.update({ where: { id }, data: { sortOrder: index } })
+    )
+  );
+
+  await logActivity({ action: `Reordered banners`, entity: "banner" });
+  revalidatePath("/banners");
+}
+
 // ─── Legal Texts ───────────────────────────────
 
 export async function createLegalText(data: {
   name: string;
   content: string;
 }) {
-  const text = await prisma.legalText.create({ data });
+  // New legal texts go to the end.
+  const last = await prisma.legalText.findFirst({
+    orderBy: { sortOrder: "desc" },
+    select: { sortOrder: true },
+  });
+
+  const text = await prisma.legalText.create({
+    data: { ...data, sortOrder: (last?.sortOrder ?? -1) + 1 },
+  });
   await logActivity({
     action: `Created legal text "${data.name}"`,
     entity: "legal_text",
@@ -162,5 +221,20 @@ export async function deleteLegalText(id: string) {
     entity: "legal_text",
     entityId: id,
   });
+  revalidatePath("/legal-texts");
+}
+
+/**
+ * Persist a new legal text order. `orderedIds` must be the full list of legal
+ * text ids in their intended display order.
+ */
+export async function reorderLegalTexts(orderedIds: string[]) {
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.legalText.update({ where: { id }, data: { sortOrder: index } })
+    )
+  );
+
+  await logActivity({ action: `Reordered legal texts`, entity: "legal_text" });
   revalidatePath("/legal-texts");
 }

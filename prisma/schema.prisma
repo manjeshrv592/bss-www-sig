@@ -57,17 +57,44 @@ model MsUser {
   businessPhones  String[] @map("business_phones")
   userPrincipalName String @map("user_principal_name")
   accountEnabled  Boolean  @default(true) @map("account_enabled")
+  // Marked by an admin: this address is a Microsoft 365 shared mailbox used by
+  // several people, so its own "identity" is not a person and must never be
+  // used to resolve a signature. Graph exposes no mailbox-type field, so this
+  // cannot be synced — see docs/setup.md.
+  isSharedMailbox Boolean  @default(false) @map("is_shared_mailbox")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   jobTitleRef JobTitle? @relation(fields: [jobTitle], references: [title])
   overrides   UserOverride[]
   groupMemberships MsGroupMember[]
+  // People who send from this shared mailbox.
+  sharedMailboxMembers SharedMailboxMember[] @relation("SharedMailboxMembers")
+  // Shared mailboxes this person can send from.
+  sharedMailboxAccess  SharedMailboxMember[] @relation("SharedMailboxAccess")
 
   @@index([country])
   @@index([department])
   @@index([jobTitle])
+  @@index([isSharedMailbox])
   @@map("ms_users")
+}
+
+/// Who may send from a given shared mailbox. Only powers the manual picker
+/// fallback — when SSO identifies the sender, that identity wins regardless of
+/// whether the person is listed here.
+model SharedMailboxMember {
+  id              String   @id @default(cuid())
+  sharedMailboxId String   @map("shared_mailbox_id")
+  msUserId        String   @map("ms_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  sharedMailbox MsUser @relation("SharedMailboxMembers", fields: [sharedMailboxId], references: [id], onDelete: Cascade)
+  msUser        MsUser @relation("SharedMailboxAccess", fields: [msUserId], references: [id], onDelete: Cascade)
+
+  @@unique([sharedMailboxId, msUserId])
+  @@index([msUserId])
+  @@map("shared_mailbox_members")
 }
 
 model JobTitle {
@@ -84,10 +111,15 @@ model Certification {
   name      String
   image     String?  @db.Text
   alt       String?
+  // Canonical position in the signature's certification strip. Assignments use
+  // OR + dedupe, so a cert can be pulled in by several rules at once — order
+  // lives on the cert itself so its position is unambiguous everywhere.
+  sortOrder Int      @default(0) @map("sort_order")
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([sortOrder])
   @@map("certifications")
 }
 
@@ -99,10 +131,13 @@ model Banner {
   link      String?
   startDate DateTime? @map("start_date")
   endDate   DateTime? @map("end_date")
+  // Canonical stacking order in the signature — see Certification.sortOrder.
+  sortOrder Int       @default(0) @map("sort_order")
   isActive  Boolean   @default(true) @map("is_active")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
+  @@index([sortOrder])
   @@map("banners")
 }
 
@@ -110,10 +145,13 @@ model LegalText {
   id        String   @id @default(cuid())
   name      String
   content   String   @db.Text
+  // Canonical order in the signature — see Certification.sortOrder.
+  sortOrder Int      @default(0) @map("sort_order")
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([sortOrder])
   @@map("legal_texts")
 }
 

@@ -38,7 +38,9 @@ export async function syncUsers() {
           displayName: gu.displayName,
           givenName: gu.givenName,
           surname: gu.surname,
-          jobTitle: gu.jobTitle,
+          jobTitleRef: gu.jobTitle
+            ? { connect: { title: gu.jobTitle } }
+            : { disconnect: true },
           department: gu.department,
           officeLocation: gu.officeLocation,
           streetAddress: gu.streetAddress,
@@ -58,7 +60,9 @@ export async function syncUsers() {
           displayName: gu.displayName,
           givenName: gu.givenName,
           surname: gu.surname,
-          jobTitle: gu.jobTitle,
+          jobTitleRef: gu.jobTitle
+            ? { connect: { title: gu.jobTitle } }
+            : undefined,
           department: gu.department,
           officeLocation: gu.officeLocation,
           streetAddress: gu.streetAddress,

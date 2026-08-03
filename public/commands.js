@@ -13,21 +13,71 @@ var API_URL = API_BASE + "/api/signature";
 
 var SKIP_AUTH = false;
 
-function fetchSignatureHtml(email, allowPrompt, isAutoInsert, callback) {
-  var url = API_URL + "?email=" + encodeURIComponent(email) + "&trusted=office";
+/**
+ * Try to get the Office SSO token, which names the person signed in to Outlook.
+ * A shared mailbox has sign-in blocked and can never produce one, so a token is
+ * always a real human — that is how we tell shared-mailbox senders apart.
+ *
+ * Auto-insert runs on a launch event where interactive prompts aren't allowed,
+ * so `allowPrompt` is false there. Never rejects: no token simply means we may
+ * have to fall back to manual selection.
+ */
+function getSsoToken(allowPrompt, callback) {
+  if (SKIP_AUTH || !Office.auth || !Office.auth.getAccessToken) {
+    callback(null);
+    return;
+  }
+
+  try {
+    Office.auth
+      .getAccessToken({
+        allowSignInPrompt: !!allowPrompt,
+        allowConsentPrompt: !!allowPrompt,
+      })
+      .then(function (token) {
+        callback(token || null);
+      })
+      .catch(function (err) {
+        console.log("SSO unavailable:", err && err.code, err && err.message);
+        callback(null);
+      });
+  } catch (e) {
+    console.log("SSO threw:", e);
+    callback(null);
+  }
+}
+
+/**
+ * callback(err, html, meta)
+ * meta.needsSelection === true when the sender is a shared mailbox we couldn't
+ * identify — the caller must not guess a signature in that case.
+ */
+function fetchSignatureHtml(email, token, callback) {
+  var url = API_URL + "?email=" + encodeURIComponent(email);
+  // trusted=office keeps the no-token path working as before.
+  if (!token) url += "&trusted=office";
 
   var xhr = new XMLHttpRequest();
   xhr.open("GET", url, true);
   xhr.setRequestHeader("Accept", "text/html");
+  if (token) xhr.setRequestHeader("Authorization", "Bearer " + token);
 
   xhr.onreadystatechange = function () {
-    if (xhr.readyState === 4) {
-      if (xhr.status === 200) {
-        callback(null, xhr.responseText);
-      } else {
-        callback(new Error("Signature API returned status " + xhr.status));
-      }
+    if (xhr.readyState !== 4) return;
+
+    if (xhr.status === 200) {
+      callback(null, xhr.responseText, { needsSelection: false });
+      return;
     }
+
+    if (xhr.status === 409) {
+      var payload = {};
+      try { payload = JSON.parse(xhr.responseText); } catch (e) { /* ignore */ }
+      callback(null, null, { needsSelection: true, sharedMailbox: payload.sharedMailbox });
+      return;
+    }
+
+    callback(new Error("Signature API returned status " + xhr.status));
   };
 
   xhr.onerror = function () {
@@ -37,49 +87,84 @@ function fetchSignatureHtml(email, allowPrompt, isAutoInsert, callback) {
   xhr.send();
 }
 
+function notify(item, key, message) {
+  item.notificationMessages.addAsync(key, {
+    type: "informationalMessage",
+    message: message,
+    icon: "icon16",
+    persistent: false,
+  });
+}
+
+function notifyError(item, key, message) {
+  item.notificationMessages.addAsync(key, {
+    type: "errorMessage",
+    message: message,
+    persistent: false,
+  });
+}
+
 function insertSignatureLogic(event, isAuto) {
   var item = Office.context.mailbox.item;
 
   item.from.getAsync(function (result) {
     var email;
-    if (result.status === Office.AsyncResultStatus.Succeeded && result.value && result.value.emailAddress) {
+    if (
+      result.status === Office.AsyncResultStatus.Succeeded &&
+      result.value &&
+      result.value.emailAddress
+    ) {
       email = result.value.emailAddress;
-      console.log("Email from item.from:", email);
+      console.log("Sending from:", email);
     } else {
       email = Office.context.mailbox.userProfile.emailAddress;
-      console.log("Email from userProfile (fallback):", email);
+      console.log("Sending from (userProfile fallback):", email);
     }
-    continueWithEmail(email, item, event, isAuto);
+
+    // Interactive prompts are only allowed off a launch event.
+    getSsoToken(!isAuto, function (token) {
+      continueWithEmail(email, token, item, event, isAuto);
+    });
   });
 }
 
-function continueWithEmail(userEmail, item, event, isAuto) {
+function continueWithEmail(userEmail, token, item, event, isAuto) {
   var cleanEmail = String(userEmail || "").trim().toLowerCase();
-  console.log("Using email:", cleanEmail);
 
   if (!cleanEmail) {
     console.error("No email address found");
     if (!isAuto) {
-      item.notificationMessages.addAsync("sigError", {
-        type: "errorMessage",
-        message: "Could not determine your email address. Please open the taskpane first.",
-        persistent: false
-      });
+      notifyError(
+        item,
+        "sigError",
+        "Could not determine your email address. Please open the taskpane first."
+      );
     }
     if (event) event.completed();
     return;
   }
 
-  fetchSignatureHtml(cleanEmail, !isAuto, isAuto, function (err, html) {
+  fetchSignatureHtml(cleanEmail, token, function (err, html, meta) {
     if (err) {
       console.error("Signature fetch error:", err.message);
       if (!isAuto) {
-        item.notificationMessages.addAsync("sigError", {
-          type: "errorMessage",
-          message: "Failed to load signature: " + (err.message || "Unknown error"),
-          persistent: false
-        });
+        notifyError(item, "sigError", "Failed to load signature: " + (err.message || "Unknown error"));
       }
+      if (event) event.completed();
+      return;
+    }
+
+    // Shared mailbox we couldn't attribute to a person. Inserting anything here
+    // would risk sending someone else's signature, so we always defer to the
+    // taskpane picker instead of guessing.
+    if (meta && meta.needsSelection) {
+      console.log("Shared mailbox needs manual sender selection:", meta.sharedMailbox);
+      notify(
+        item,
+        "sigPick",
+        "Open the BSS Signature panel to choose who is sending from " +
+          (meta.sharedMailbox || "this shared mailbox") + "."
+      );
       if (event) event.completed();
       return;
     }

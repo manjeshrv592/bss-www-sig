@@ -11,8 +11,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Image, Loader2 } from "lucide-react";
-import { createBanner, updateBanner, deleteBanner } from "@/lib/actions/resources";
+import { Plus, Pencil, Trash2, Image as ImageIcon, Loader2 } from "lucide-react";
+import {
+  createBanner,
+  updateBanner,
+  deleteBanner,
+  reorderBanners,
+} from "@/lib/actions/resources";
+import { useDragOrder } from "@/lib/use-drag-order";
+import { OrderCell } from "@/components/order-cell";
 
 interface Banner {
   id: string;
@@ -37,6 +44,11 @@ export function BannerList({ banners }: { banners: Banner[] }) {
   const [clearDates, setClearDates] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  const { items, getRowProps, rowStateClass, getHandleProps } = useDragOrder(
+    banners,
+    reorderBanners
+  );
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -197,10 +209,10 @@ export function BannerList({ banners }: { banners: Banner[] }) {
         </Dialog>
       </div>
 
-      {banners.length === 0 ? (
+      {items.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Image className="h-10 w-10 text-muted-foreground/40 mb-3" />
+            <ImageIcon className="h-10 w-10 text-muted-foreground/40 mb-3" />
             <p className="text-sm font-medium">No banners yet</p>
             <p className="text-xs text-muted-foreground mt-1">
               Add your first promotional banner.
@@ -213,6 +225,7 @@ export function BannerList({ banners }: { banners: Banner[] }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="w-16 px-4 py-3 font-medium">Order</th>
                   <th className="px-4 py-3 font-medium">Image</th>
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Alt Text</th>
@@ -222,11 +235,15 @@ export function BannerList({ banners }: { banners: Banner[] }) {
                 </tr>
               </thead>
               <tbody>
-                {banners.map((banner) => (
+                {items.map((banner, index) => (
                   <tr
                     key={banner.id}
-                    className={`border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors ${!banner.isActive ? "opacity-50" : ""}`}
+                    {...getRowProps(index)}
+                    className={`border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors ${
+                      !banner.isActive ? "opacity-50" : ""
+                    } ${rowStateClass(index)}`}
                   >
+                    <OrderCell index={index} handleProps={getHandleProps(index, banner.name)} />
                     <td className="px-4 py-3">
                       {banner.image ? (
                         <img src={banner.image} alt={banner.alt ?? banner.name} className="h-8 w-16 rounded object-cover" />

@@ -14,12 +14,14 @@ import {
   Activity,
   Link2,
   Globe,
+  Mailbox,
 } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/users", label: "Users", icon: Users },
   { href: "/groups", label: "Groups", icon: UsersRound },
+  { href: "/shared-mailboxes", label: "Shared Mailboxes", icon: Mailbox },
   { href: "/certifications", label: "Certifications", icon: Award },
   { href: "/banners", label: "Banners", icon: Image },
   { href: "/legal-texts", label: "Legal Texts", icon: FileText },

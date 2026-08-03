@@ -61,8 +61,11 @@
         <Host xsi:type="MailHost">
 
           <Runtimes>
+            <!-- Runtime resid (HTML) = browser runtime used by Outlook on the web and new Outlook on Windows.
+                 Override type="javascript" (JS file) = JavaScript-only runtime used by classic Outlook on Windows.
+                 These MUST point to different files: classic Outlook executes the Override resid AS JavaScript. -->
             <Runtime resid="commandsUrl">
-              <Override type="javascript" resid="commandsUrl"/>
+              <Override type="javascript" resid="commandsJsUrl"/>
             </Runtime>
           </Runtimes>
 
@@ -102,7 +105,7 @@
                       <bt:Image size="80" resid="icon80"/>
                     </Icon>
                     <Action xsi:type="ExecuteFunction">
-                      <FunctionName>refreshSignature</FunctionName>
+                      <FunctionName>insertSignature</FunctionName>
                     </Action>
                   </Control>
 
@@ -129,6 +132,7 @@
         </bt:Images>
         <bt:Urls>
           <bt:Url id="commandsUrl" DefaultValue="http://localhost:3000/commands.html"/>
+          <bt:Url id="commandsJsUrl" DefaultValue="http://localhost:3000/commands.js"/>
           <bt:Url id="taskpaneUrl" DefaultValue="http://localhost:3000/taskpane.html"/>
         </bt:Urls>
         <bt:ShortStrings>
@@ -143,8 +147,8 @@
       </Resources>
 
       <WebApplicationInfo>
-        <Id>__AZURE_CLIENT_ID__</Id>
-        <Resource>api://__AZURE_CLIENT_ID__</Resource>
+        <Id>ed2272a4-1857-4f80-8ee3-432fff493c3c</Id>
+        <Resource>api://bss-www-sig.vercel.app/ed2272a4-1857-4f80-8ee3-432fff493c3c</Resource>
         <Scopes>
           <Scope>openid</Scope>
           <Scope>profile</Scope>

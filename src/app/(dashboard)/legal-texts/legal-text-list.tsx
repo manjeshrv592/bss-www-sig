@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,8 +16,11 @@ import {
   createLegalText,
   updateLegalText,
   deleteLegalText,
+  reorderLegalTexts,
 } from "@/lib/actions/resources";
 import { RichTextEditor } from "@/components/rich-text-editor";
+import { useDragOrder } from "@/lib/use-drag-order";
+import { OrderCell } from "@/components/order-cell";
 
 interface LegalText {
   id: string;
@@ -33,6 +36,11 @@ export function LegalTextList({ legalTexts }: { legalTexts: LegalText[] }) {
   const [content, setContent] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  const { items, getRowProps, rowStateClass, getHandleProps } = useDragOrder(
+    legalTexts,
+    reorderLegalTexts
+  );
 
   const openCreate = () => {
     setEditItem(null);
@@ -131,7 +139,7 @@ export function LegalTextList({ legalTexts }: { legalTexts: LegalText[] }) {
         </Dialog>
       </div>
 
-      {legalTexts.length === 0 ? (
+      {items.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <FileText className="h-10 w-10 text-muted-foreground/40 mb-3" />
@@ -147,6 +155,7 @@ export function LegalTextList({ legalTexts }: { legalTexts: LegalText[] }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="w-16 px-4 py-3 font-medium">Order</th>
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Preview</th>
                   <th className="px-4 py-3 font-medium">Status</th>
@@ -154,11 +163,15 @@ export function LegalTextList({ legalTexts }: { legalTexts: LegalText[] }) {
                 </tr>
               </thead>
               <tbody>
-                {legalTexts.map((item) => (
+                {items.map((item, index) => (
                   <tr
                     key={item.id}
-                    className={`border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors ${!item.isActive ? "opacity-50" : ""}`}
+                    {...getRowProps(index)}
+                    className={`border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors ${
+                      !item.isActive ? "opacity-50" : ""
+                    } ${rowStateClass(index)}`}
                   >
+                    <OrderCell index={index} handleProps={getHandleProps(index, item.name)} />
                     <td className="px-4 py-3 font-medium">{item.name}</td>
                     <td className="px-4 py-3 max-w-[400px]">
                       <div

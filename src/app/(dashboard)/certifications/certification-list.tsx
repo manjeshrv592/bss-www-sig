@@ -16,7 +16,10 @@ import {
   createCertification,
   updateCertification,
   deleteCertification,
+  reorderCertifications,
 } from "@/lib/actions/resources";
+import { useDragOrder } from "@/lib/use-drag-order";
+import { OrderCell } from "@/components/order-cell";
 
 interface Certification {
   id: string;
@@ -36,6 +39,11 @@ export function CertificationList({
   const [editItem, setEditItem] = useState<Certification | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  const { items, getRowProps, rowStateClass, getHandleProps } = useDragOrder(
+    certifications,
+    reorderCertifications
+  );
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -144,7 +152,7 @@ export function CertificationList({
         </Dialog>
       </div>
 
-      {certifications.length === 0 ? (
+      {items.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <Award className="h-10 w-10 text-muted-foreground/40 mb-3" />
@@ -160,6 +168,7 @@ export function CertificationList({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="w-16 px-4 py-3 font-medium">Order</th>
                   <th className="px-4 py-3 font-medium">Image</th>
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Alt Text</th>
@@ -168,11 +177,15 @@ export function CertificationList({
                 </tr>
               </thead>
               <tbody>
-                {certifications.map((cert) => (
+                {items.map((cert, index) => (
                   <tr
                     key={cert.id}
-                    className={`border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors ${!cert.isActive ? "opacity-50" : ""}`}
+                    {...getRowProps(index)}
+                    className={`border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors ${
+                      !cert.isActive ? "opacity-50" : ""
+                    } ${rowStateClass(index)}`}
                   >
+                    <OrderCell index={index} handleProps={getHandleProps(index, cert.name)} />
                     <td className="px-4 py-3">
                       {cert.image ? (
                         <img src={cert.image} alt={cert.alt ?? cert.name} className="h-8 object-contain" />

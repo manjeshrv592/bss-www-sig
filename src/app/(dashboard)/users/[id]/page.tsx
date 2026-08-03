@@ -10,6 +10,14 @@ import { generateSignatureHtml } from "@/lib/signature-template";
 import { UserOverrideManager } from "./user-override";
 import { SignaturePreview } from "./signature-preview";
 
+const SCOPE_LABELS: Record<string, string> = {
+  global: "Global",
+  country: "Country",
+  state: "State / Province",
+  job_title: "Job Title",
+  group: "Group",
+};
+
 export default async function UserProfilePage(props: {
   params: Promise<{ id: string }>;
 }) {
@@ -57,6 +65,7 @@ export default async function UserProfilePage(props: {
     { icon: Building, label: "Company", value: user.companyName },
     { icon: MapPin, label: "Office", value: user.officeLocation },
     { icon: MapPin, label: "City", value: user.city },
+    { icon: MapPin, label: "State / Province", value: user.state },
     { icon: MapPin, label: "Country", value: user.country },
     { icon: Phone, label: "Mobile", value: user.mobilePhone },
     {
@@ -84,6 +93,14 @@ export default async function UserProfilePage(props: {
               <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
             </Avatar>
             <h2 className="text-lg font-semibold">{fullName}</h2>
+            {user.isSharedMailbox && (
+              <Link
+                href="/shared-mailboxes"
+                className="mt-1 rounded-full bg-blue-500/10 text-blue-500 px-2 py-0.5 text-[10px] font-medium hover:bg-blue-500/20"
+              >
+                Shared Mailbox
+              </Link>
+            )}
             <p className="text-sm text-muted-foreground">{user.jobTitle ?? "No title"}</p>
             <p className="text-xs text-muted-foreground mt-1">{user.department ?? ""}</p>
             <div className="mt-4 w-full space-y-2 text-left">
@@ -190,7 +207,7 @@ export default async function UserProfilePage(props: {
                         ? "Global"
                         : r.scope === "group"
                           ? `Group: ${groupNameMap.get(r.scopeValue ?? "") ?? r.scopeValue}`
-                          : `${r.scope}: ${r.scopeValue}`}
+                          : `${SCOPE_LABELS[r.scope] ?? r.scope}: ${r.scopeValue}`}
                     </span>
                   ))}
                 </div>

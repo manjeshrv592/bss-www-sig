@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, Globe, MapPin, Briefcase, Users } from "lucide-react";
+import { Plus, Trash2, Loader2, Globe, MapPin, Map, Briefcase, Users } from "lucide-react";
 import { createAssignment, deleteAssignment } from "@/lib/actions/assignments";
 
 interface Assignment {
@@ -40,6 +40,7 @@ interface Props {
   banners: Resource[];
   legalTexts: Resource[];
   countries: string[];
+  states: string[];
   jobTitles: string[];
   groups: Group[];
 }
@@ -47,6 +48,7 @@ interface Props {
 const SCOPE_ICONS: Record<string, typeof Globe> = {
   global: Globe,
   country: MapPin,
+  state: Map,
   job_title: Briefcase,
   group: Users,
 };
@@ -54,6 +56,7 @@ const SCOPE_ICONS: Record<string, typeof Globe> = {
 const SCOPE_LABELS: Record<string, string> = {
   global: "Global",
   country: "Country",
+  state: "State / Province",
   job_title: "Job Title",
   group: "Group",
 };
@@ -70,6 +73,7 @@ export function AssignmentManager({
   banners,
   legalTexts,
   countries,
+  states,
   jobTitles,
   groups,
 }: Props) {
@@ -93,9 +97,13 @@ export function AssignmentManager({
     return list.find((r) => r.id === id)?.name ?? id;
   };
 
+  // Every scope except "global" is meaningless without a value to match on.
+  const needsScopeValue = scope !== "global";
+  const canSubmit = Boolean(resourceId) && (!needsScopeValue || Boolean(scopeValue));
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resourceId) return;
+    if (!canSubmit) return;
     startTransition(async () => {
       await createAssignment({
         scope,
@@ -153,6 +161,7 @@ export function AssignmentManager({
                   <SelectContent position="popper">
                     <SelectItem value="global">Global (all users)</SelectItem>
                     <SelectItem value="country">Country</SelectItem>
+                    <SelectItem value="state">State / Province</SelectItem>
                     <SelectItem value="job_title">Job Title</SelectItem>
                     <SelectItem value="group">Group</SelectItem>
                   </SelectContent>
@@ -172,6 +181,29 @@ export function AssignmentManager({
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {scope === "state" && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">State / Province</label>
+                  {states.length === 0 ? (
+                    <p className="rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+                      No state/province values found. This comes from each user&apos;s
+                      Microsoft 365 profile — fill it in there, then re-sync users.
+                    </p>
+                  ) : (
+                    <Select value={scopeValue} onValueChange={setScopeValue}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select state/province..." />
+                      </SelectTrigger>
+                      <SelectContent position="popper">
+                        {states.map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               )}
 
@@ -239,7 +271,7 @@ export function AssignmentManager({
                 <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" size="sm" disabled={isPending || !resourceId}>
+                <Button type="submit" size="sm" disabled={isPending || !canSubmit}>
                   {isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                   Assign
                 </Button>
