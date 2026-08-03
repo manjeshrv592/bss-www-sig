@@ -4,7 +4,9 @@
       "Bash(cp \"C:\\\\Users\\\\Admin\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--done-bss-www-sig\\\\0657cdf1-ddad-4813-8d51-ae05d3ffecae\\\\scratchpad\\\\verify.ts\" ./__verify.ts)",
       "Bash(npx tsx *)",
       "Bash(node \"C:\\\\Users\\\\Admin\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--done-bss-www-sig\\\\0657cdf1-ddad-4813-8d51-ae05d3ffecae\\\\scratchpad\\\\check.js\")",
-      "Bash(npx prisma *)"
+      "Bash(npx prisma *)",
+      "Bash(node \"C:\\\\Users\\\\Admin\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--done-bss-www-sig\\\\0657cdf1-ddad-4813-8d51-ae05d3ffecae\\\\scratchpad\\\\neon-check.js\")",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_1n2kmwvyItqC@ep-muddy-sunset-apamxmrc-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require\" npx prisma migrate deploy)"
     ]
   }
 }
