@@ -19,15 +19,25 @@ export async function logActivity(params: LogActivityParams) {
 
   if (!userId) return null;
 
-  return prisma.activityLog.create({
-    data: {
-      userId,
-      action: params.action,
-      entity: params.entity,
-      entityId: params.entityId,
-      details: params.details,
-    },
-  });
+  try {
+    return await prisma.activityLog.create({
+      data: {
+        userId,
+        action: params.action,
+        entity: params.entity,
+        entityId: params.entityId,
+        details: params.details,
+      },
+    });
+  } catch (error) {
+    // Auditing must never take down the operation it is recording. The usual
+    // cause is a session whose JWT still points at a users row that no longer
+    // exists (e.g. the table was cleared), which trips the foreign key.
+    // Callers also log from their own catch blocks, so throwing here would
+    // replace the real error with this one.
+    console.error("Failed to write activity log:", error);
+    return null;
+  }
 }
 
 export async function getRecentActivity(limit = 5) {

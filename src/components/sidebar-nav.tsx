@@ -10,7 +10,6 @@ import {
   Award,
   Image,
   FileText,
-  Settings,
   Activity,
   Link2,
   Globe,
@@ -28,7 +27,6 @@ const navItems = [
   { href: "/assignments", label: "Assignments", icon: Link2 },
   { href: "/country-config", label: "Country Config", icon: Globe },
   { href: "/activity", label: "Activity Log", icon: Activity },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function SidebarNav() {
