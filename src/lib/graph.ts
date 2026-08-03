@@ -81,6 +81,10 @@ export interface GraphUser {
   mobilePhone: string | null;
   businessPhones: string[];
   accountEnabled: boolean;
+  // Shared mailboxes carry no licence. Combined with a blocked sign-in and a
+  // real mail address, this is the closest Graph gets to identifying one —
+  // Graph has no mailbox-type field at all.
+  assignedLicenses: { skuId: string }[];
 }
 
 interface GraphUsersResponse {
@@ -107,6 +111,7 @@ const USER_SELECT = [
   "mobilePhone",
   "businessPhones",
   "accountEnabled",
+  "assignedLicenses",
 ].join(",");
 
 // ─── Groups ──────────────────────────────────

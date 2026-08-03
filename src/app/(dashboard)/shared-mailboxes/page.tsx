@@ -33,6 +33,8 @@ export default async function SharedMailboxesPage() {
         givenName: true,
         surname: true,
         accountEnabled: true,
+        isLicensed: true,
+        hasMailbox: true,
         isSharedMailbox: true,
       },
       orderBy: { email: "asc" },
@@ -80,6 +82,9 @@ export default async function SharedMailboxesPage() {
           name: name(u),
           accountEnabled: u.accountEnabled,
           isSharedMailbox: u.isSharedMailbox,
+          // Graph has no mailbox-type field. This is the shared-mailbox
+          // fingerprint: sign-in blocked, unlicensed, but has a real mailbox.
+          looksShared: !u.accountEnabled && !u.isLicensed && u.hasMailbox,
         }))}
       />
     </div>

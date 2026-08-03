@@ -18,9 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, Mailbox, UserPlus, X } from "lucide-react";
+import { Plus, Trash2, Loader2, Mailbox, UserPlus, X, Lightbulb } from "lucide-react";
 import {
   setSharedMailbox,
+  markSharedMailboxes,
   addSharedMailboxMember,
   removeSharedMailboxMember,
 } from "@/lib/actions/shared-mailboxes";
@@ -38,6 +39,7 @@ interface MailboxRow extends Person {
 interface UserOption extends Person {
   accountEnabled: boolean;
   isSharedMailbox: boolean;
+  looksShared: boolean;
 }
 
 export function SharedMailboxManager({
@@ -60,11 +62,10 @@ export function SharedMailboxManager({
     });
 
   const candidates = allUsers.filter((u) => !u.isSharedMailbox);
-  // Microsoft creates a sign-in-blocked directory object behind every shared
-  // mailbox, so disabled accounts are the likeliest candidates — but a
-  // departed employee looks identical, hence the admin confirms.
-  const likely = candidates.filter((u) => !u.accountEnabled);
-  const rest = candidates.filter((u) => u.accountEnabled);
+  // Suggestions only — an offboarded employee has the same fingerprint, and a
+  // wrong flag silently changes whose signature goes out, so an admin confirms.
+  const suggested = candidates.filter((u) => u.looksShared);
+  const rest = candidates.filter((u) => !u.looksShared);
 
   return (
     <>
@@ -93,15 +94,11 @@ export function SharedMailboxManager({
                     <SelectValue placeholder="Select an address..." />
                   </SelectTrigger>
                   <SelectContent position="popper">
-                    {likely.length > 0 && (
-                      <>
-                        {likely.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.email} — sign-in disabled
-                          </SelectItem>
-                        ))}
-                      </>
-                    )}
+                    {suggested.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.email} — likely shared
+                      </SelectItem>
+                    ))}
                     {rest.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
                         {u.email}
@@ -138,6 +135,59 @@ export function SharedMailboxManager({
           </DialogContent>
         </Dialog>
       </div>
+
+      {suggested.length > 0 && (
+        <Card className="border-amber-500/30 bg-amber-500/[0.03]">
+          <CardHeader className="flex flex-row items-start justify-between gap-4 pb-3">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <Lightbulb className="h-4 w-4 text-amber-500" />
+                Looks like {suggested.length} shared mailbox
+                {suggested.length === 1 ? "" : "es"}
+              </CardTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Sign-in blocked, no licence, but has a mailbox — the shared-mailbox
+                fingerprint. An offboarded employee looks the same, so please
+                confirm before marking.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              disabled={isPending}
+              onClick={() =>
+                run(() => markSharedMailboxes(suggested.map((u) => u.id)))
+              }
+            >
+              {isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Mark all
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {suggested.map((u) => (
+              <div
+                key={u.id}
+                className="flex items-center justify-between gap-4 rounded-md border border-border/60 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{u.email}</p>
+                  <p className="truncate text-xs text-muted-foreground">{u.name}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 shrink-0 text-xs"
+                  disabled={isPending}
+                  onClick={() => run(() => setSharedMailbox(u.id, true))}
+                >
+                  Mark as shared
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {mailboxes.length === 0 ? (
         <Card>

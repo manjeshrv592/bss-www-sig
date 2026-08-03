@@ -31,6 +31,23 @@ export async function setSharedMailbox(msUserId: string, isShared: boolean) {
   revalidatePath(`/users/${msUserId}`);
 }
 
+/** Confirm several suggested addresses as shared mailboxes at once. */
+export async function markSharedMailboxes(msUserIds: string[]) {
+  if (msUserIds.length === 0) return;
+
+  await prisma.msUser.updateMany({
+    where: { id: { in: msUserIds } },
+    data: { isSharedMailbox: true },
+  });
+
+  await logActivity({
+    action: `Marked ${msUserIds.length} address${msUserIds.length === 1 ? "" : "es"} as shared mailboxes`,
+    entity: "shared_mailbox",
+  });
+
+  revalidatePath("/shared-mailboxes");
+}
+
 export async function addSharedMailboxMember(
   sharedMailboxId: string,
   msUserId: string

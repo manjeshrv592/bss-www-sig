@@ -53,6 +53,8 @@ export async function syncUsers() {
           businessPhones: gu.businessPhones ?? [],
           userPrincipalName: gu.userPrincipalName,
           accountEnabled: gu.accountEnabled ?? true,
+          isLicensed: (gu.assignedLicenses?.length ?? 0) > 0,
+          hasMailbox: gu.mail != null,
         },
         create: {
           msId: gu.id,
@@ -75,6 +77,8 @@ export async function syncUsers() {
           businessPhones: gu.businessPhones ?? [],
           userPrincipalName: gu.userPrincipalName,
           accountEnabled: gu.accountEnabled ?? true,
+          isLicensed: (gu.assignedLicenses?.length ?? 0) > 0,
+          hasMailbox: gu.mail != null,
         },
       });
 

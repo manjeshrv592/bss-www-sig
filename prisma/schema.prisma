@@ -57,6 +57,13 @@ model MsUser {
   businessPhones  String[] @map("business_phones")
   userPrincipalName String @map("user_principal_name")
   accountEnabled  Boolean  @default(true) @map("account_enabled")
+  // Synced from Graph. A blocked sign-in + no licence + a real mail address is
+  // the fingerprint of a shared mailbox, and drives the suggestions on the
+  // Shared Mailboxes page. It stays a suggestion because an offboarded user
+  // looks identical — Microsoft's own guidance is to convert their mailbox to
+  // a shared one.
+  isLicensed      Boolean  @default(false) @map("is_licensed")
+  hasMailbox      Boolean  @default(false) @map("has_mailbox")
   // Marked by an admin: this address is a Microsoft 365 shared mailbox used by
   // several people, so its own "identity" is not a person and must never be
   // used to resolve a signature. Graph exposes no mailbox-type field, so this
