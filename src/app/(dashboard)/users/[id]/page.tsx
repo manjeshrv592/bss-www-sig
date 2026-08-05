@@ -14,6 +14,7 @@ const SCOPE_LABELS: Record<string, string> = {
   global: "Global",
   country: "Country",
   state: "State / Province",
+  office: "Office",
   job_title: "Job Title",
   group: "Group",
 };

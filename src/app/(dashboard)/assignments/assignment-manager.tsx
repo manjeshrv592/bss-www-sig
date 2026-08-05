@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, Globe, MapPin, Map, Briefcase, Users } from "lucide-react";
+import { Plus, Trash2, Loader2, Globe, MapPin, Map, Building2, Briefcase, Users } from "lucide-react";
 import { createAssignment, deleteAssignment } from "@/lib/actions/assignments";
 
 interface Assignment {
@@ -43,6 +43,7 @@ interface Props {
   footerLines: Resource[];
   countries: string[];
   states: string[];
+  offices: string[];
   jobTitles: string[];
   groups: Group[];
 }
@@ -51,6 +52,7 @@ const SCOPE_ICONS: Record<string, typeof Globe> = {
   global: Globe,
   country: MapPin,
   state: Map,
+  office: Building2,
   job_title: Briefcase,
   group: Users,
 };
@@ -59,6 +61,7 @@ const SCOPE_LABELS: Record<string, string> = {
   global: "Global",
   country: "Country",
   state: "State / Province",
+  office: "Office",
   job_title: "Job Title",
   group: "Group",
 };
@@ -72,8 +75,8 @@ const RESOURCE_LABELS: Record<string, string> = {
 };
 
 // These occupy a single slot in the template, so overlapping rules resolve by
-// scope specificity (group > job title > state > country > global) instead of
-// stacking the way list resources do.
+// scope specificity (group > job title > office > state > country > global)
+// instead of stacking the way list resources do.
 const SINGLE_SLOT_TYPES = new Set(["registration_line", "footer_line"]);
 
 export function AssignmentManager({
@@ -85,6 +88,7 @@ export function AssignmentManager({
   footerLines,
   countries,
   states,
+  offices,
   jobTitles,
   groups,
 }: Props) {
@@ -174,6 +178,7 @@ export function AssignmentManager({
                     <SelectItem value="global">Global (all users)</SelectItem>
                     <SelectItem value="country">Country</SelectItem>
                     <SelectItem value="state">State / Province</SelectItem>
+                    <SelectItem value="office">Office</SelectItem>
                     <SelectItem value="job_title">Job Title</SelectItem>
                     <SelectItem value="group">Group</SelectItem>
                   </SelectContent>
@@ -212,6 +217,30 @@ export function AssignmentManager({
                       <SelectContent position="popper">
                         {states.map((s) => (
                           <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              )}
+
+              {scope === "office" && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Office</label>
+                  {offices.length === 0 ? (
+                    <p className="rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+                      No office values found. This comes from the Office field on
+                      each user&apos;s Microsoft 365 profile — fill it in there,
+                      then re-sync users.
+                    </p>
+                  ) : (
+                    <Select value={scopeValue} onValueChange={setScopeValue}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select office..." />
+                      </SelectTrigger>
+                      <SelectContent position="popper">
+                        {offices.map((o) => (
+                          <SelectItem key={o} value={o}>{o}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -268,7 +297,8 @@ export function AssignmentManager({
                 {SINGLE_SLOT_TYPES.has(resourceType) && (
                   <p className="text-xs text-muted-foreground">
                     Only one applies per user. If several rules match, the most
-                    specific wins — group, then job title, state, country, global.
+                    specific wins — group, then job title, office, state,
+                    country, global.
                   </p>
                 )}
               </div>

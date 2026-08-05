@@ -26,8 +26,9 @@ const SCOPE_SPECIFICITY: Record<string, number> = {
   global: 0,
   country: 1,
   state: 2,
-  job_title: 3,
-  group: 4,
+  office: 3,
+  job_title: 4,
+  group: 5,
 };
 
 /**
@@ -156,6 +157,9 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
   }
   if (user.state) {
     scopeConditions.push({ scope: "state", scopeValue: user.state });
+  }
+  if (user.officeLocation) {
+    scopeConditions.push({ scope: "office", scopeValue: user.officeLocation });
   }
   if (user.jobTitle) {
     scopeConditions.push({ scope: "job_title", scopeValue: user.jobTitle });

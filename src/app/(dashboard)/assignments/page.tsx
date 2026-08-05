@@ -11,6 +11,7 @@ export default async function AssignmentsPage() {
     footerLines,
     countries,
     states,
+    offices,
     jobTitles,
     groups,
   ] = await Promise.all([
@@ -52,6 +53,12 @@ export default async function AssignmentsPage() {
         distinct: ["state"],
         orderBy: { state: "asc" },
       }),
+      prisma.msUser.findMany({
+        where: { officeLocation: { not: null } },
+        select: { officeLocation: true },
+        distinct: ["officeLocation"],
+        orderBy: { officeLocation: "asc" },
+      }),
       prisma.jobTitle.findMany({
         select: { title: true },
         orderBy: { title: "asc" },
@@ -68,6 +75,9 @@ export default async function AssignmentsPage() {
   const stateList = states
     .map((s) => s.state)
     .filter((s): s is string => s !== null);
+  const officeList = offices
+    .map((o) => o.officeLocation)
+    .filter((o): o is string => o !== null);
   const jobTitleList = jobTitles.map((j) => j.title);
 
   return (
@@ -88,6 +98,7 @@ export default async function AssignmentsPage() {
         footerLines={footerLines}
         countries={countryList}
         states={stateList}
+        offices={officeList}
         jobTitles={jobTitleList}
         groups={groups}
       />
