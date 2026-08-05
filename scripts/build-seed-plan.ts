@@ -1,39 +1,29 @@
 /**
- * Seed certifications, legal texts, registration lines and assignment rules
- * from the client's spreadsheet.
+ * Parse the client spreadsheet into seed/seed-plan.json.
  *
- *   npx tsx --env-file=.env scripts/seed-from-excel.ts            # dry run
- *   npx tsx --env-file=.env scripts/seed-from-excel.ts --commit   # write
+ *   npx tsx scripts/build-seed-plan.ts
  *
- * Dry run by default: it prints exactly what it would create and every value it
- * could not resolve, without touching the database. Re-runnable — resources are
- * keyed by name and assignments by their unique scope/resource pair, so running
- * it twice does not duplicate anything.
+ * Development-only: this is the half that needs `xlsx`, a devDependency. The
+ * generated plan is committed, so seeding a server needs neither the
+ * spreadsheet nor the parser — see scripts/seed.ts.
+ *
+ * Keeping the parse out of the deploy also means production applies exactly the
+ * plan that was reviewed, and the JSON diff shows what a sheet edit changed.
  *
  * The Certificates column is prose written for a designer rather than data
  * ("REMOVE the AEO logo", "Same strip as Hamburg", "+ CIFFA once member"), so
  * certificates are found by scanning each cell for known names instead of
- * splitting on a delimiter. Instruction clauses are stripped first.
+ * splitting on a delimiter, with instruction clauses stripped first.
  */
 import fs from "node:fs";
 import path from "node:path";
 import * as XLSX from "xlsx";
-import { PrismaClient } from "../src/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
 
-const COMMIT = process.argv.includes("--commit");
 const ROOT = path.resolve(__dirname, "..");
-// Deliberately outside public/: these are client business records (VAT and
-// registration numbers, internal notes) and are only read at seed time, so they
-// never need to be served or deployed.
 const XLSX_PATH = path.join(ROOT, "seed", "seed-data.xlsx");
 const LOGO_DIR = path.join(ROOT, "seed", "certificates");
+const OUT_PATH = path.join(ROOT, "seed", "seed-plan.json");
 
-const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
-});
-
-// ── Certificate name → logo file ───────────────────────────────
 // The sheet's wording drifts from the filenames (word order, punctuation,
 // qualifiers), so the tricky ones are mapped explicitly.
 const ALIASES: Record<string, string> = {
@@ -78,7 +68,6 @@ const SCAN_TERMS = Object.keys(ALIASES).sort((a, b) => b.length - a.length);
 const warnings: string[] = [];
 const warn = (m: string) => warnings.push(m);
 
-/** Certificates named inside a "REMOVE ..." or "once member" clause. */
 function termsIn(text: string): string[] {
   const found: string[] = [];
   let rest = text.toLowerCase();
@@ -100,7 +89,6 @@ function parseCertificates(cell: string, rowLabel: string): string[] {
     termsIn(m[1]).forEach((f) => excluded.add(f));
     text = text.replace(m[0], " ");
   }
-
   // "(entity in formation; + CIFFA once member)" — pending, not yet applicable.
   for (const m of text.matchAll(/\(([^)]*(?:once member|entity in formation|pending)[^)]*)\)/gi)) {
     termsIn(m[1]).forEach((f) => excluded.add(f));
@@ -110,7 +98,6 @@ function parseCertificates(cell: string, rowLabel: string): string[] {
     termsIn(m[1]).forEach((f) => excluded.add(f));
     text = text.replace(m[0], " ");
   }
-
   // "(no network logos - WCA/JCTrans/GLA allocated to Chennai ... only)"
   for (const m of text.matchAll(/\(no network logos[^)]*\)/gi)) {
     termsIn(m[0]).forEach((f) => excluded.add(f));
@@ -120,16 +107,8 @@ function parseCertificates(cell: string, rowLabel: string): string[] {
   const included = termsIn(text).filter((f) => !excluded.has(f));
   const missing = included.filter((f) => !fs.existsSync(path.join(LOGO_DIR, f)));
   missing.forEach((f) => warn(`${rowLabel}: logo file not found: ${f}`));
-
   return [...new Set(included.filter((f) => !missing.includes(f)))];
 }
-
-function toDataUri(file: string): string {
-  const buf = fs.readFileSync(path.join(LOGO_DIR, file));
-  return `data:image/jpeg;base64,${buf.toString("base64")}`;
-}
-
-const certName = (file: string) => file.replace(/\.jpg$/i, "");
 
 interface Row {
   label: string;
@@ -138,7 +117,6 @@ interface Row {
   certFiles: string[];
   legal: string;
   registration: string;
-  /** Set when the cell defers to another row ("Same strip as Hamburg"). */
   certRef: string | null;
 }
 
@@ -154,17 +132,16 @@ function readRows(): Row[] {
     const label = String(r[1]).trim();
     if (!label) continue;
 
-    // "Germany - Hamburg" → country "Germany", office "Hamburg".
-    // "India - other offices (Bengaluru, …)" is the country-wide baseline.
+    // "Germany - Hamburg" -> country "Germany", office "Hamburg".
+    // "India - other offices (…)" is the country-wide baseline.
     const [countryPart, ...officeParts] = label.split(/\s+[-–]\s+/);
-    const country = countryPart.trim();
     let office: string | null = officeParts.join(" - ").trim() || null;
     if (office && /^other offices/i.test(office)) office = null;
     if (office) office = office.replace(/\s*\(.*\)\s*$/, "").replace(/\s+Branch$/i, "").trim();
 
     rows.push({
       label,
-      country,
+      country: countryPart.trim(),
       office,
       certFiles: parseCertificates(String(r[2]), label),
       legal: String(r[3]).trim(),
@@ -173,10 +150,9 @@ function readRows(): Row[] {
     });
   }
 
-  // Resolve cross-references such as "Same strip as Hamburg" and "Same legal
-  // line as Hamburg". These cells also contain stray ID numbers that partially
-  // match certificate names, so the referenced row replaces the parse entirely
-  // rather than only filling in when nothing was found.
+  // Resolve cross-references. These cells also contain stray ID numbers that
+  // partially match certificate names, so the referenced row replaces the
+  // parse entirely rather than only filling in when nothing was found.
   const byName = (n: string) =>
     rows.find((o) => o.office?.toLowerCase() === n.toLowerCase()) ??
     rows.find((o) => o.country.toLowerCase() === n.toLowerCase());
@@ -228,18 +204,13 @@ function readRows(): Row[] {
   return rows;
 }
 
-async function main() {
-  console.log(COMMIT ? "MODE: COMMIT (writing)\n" : "MODE: DRY RUN (nothing written)\n");
+function main() {
   const rows = readRows();
 
-  // A country-level rule applies to every office in that country, so an office
-  // rule only needs to carry what that office adds on top of the baseline.
+  // A country rule applies to every office in that country, so an office rule
+  // only needs to carry what that office adds on top of the baseline.
   const baseline = new Map<string, Row>();
   for (const r of rows) if (!r.office) baseline.set(r.country, r);
-  for (const r of rows) {
-    if (r.office) continue;
-    // Single-office countries have no separate baseline row; they are the baseline.
-  }
   for (const c of new Set(rows.map((r) => r.country))) {
     if (!baseline.has(c)) {
       const only = rows.filter((r) => r.country === c);
@@ -247,145 +218,101 @@ async function main() {
     }
   }
 
-  const plan: { scope: string; value: string | null; type: string; key: string }[] = [];
-  const certFiles = new Set<string>();
-  const legalTexts = new Map<string, string[]>();
-  const regLines = new Map<string, string[]>();
+  const certifications = new Map<string, string>(); // name -> file
+  const legalTexts = new Map<string, string[]>(); // content -> labels
+  const registrationLines = new Map<string, string[]>(); // text -> labels
+  const assignments: {
+    scope: string;
+    scopeValue: string | null;
+    resourceType: string;
+    resourceName: string;
+  }[] = [];
 
   for (const r of rows) {
     const base = baseline.get(r.country);
     const isBaseline = base === r;
-    const scope = isBaseline ? "country" : "office";
-    const value = isBaseline ? r.country : r.office;
     if (!isBaseline && !r.office) continue;
+    const scope = isBaseline ? "country" : "office";
+    const scopeValue = isBaseline ? r.country : r.office;
 
-    // Only the delta for office rows — the country rule already contributes the rest.
     const certs = isBaseline
       ? r.certFiles
       : r.certFiles.filter((f) => !base || !base.certFiles.includes(f));
 
-    certs.forEach((f) => {
-      certFiles.add(f);
-      plan.push({ scope, value, type: "certification", key: certName(f) });
-    });
-
+    for (const file of certs) {
+      const name = file.replace(/\.jpg$/i, "");
+      certifications.set(name, file);
+      assignments.push({ scope, scopeValue, resourceType: "certification", resourceName: name });
+    }
     if (r.legal && (isBaseline || r.legal !== base?.legal)) {
       if (!legalTexts.has(r.legal)) legalTexts.set(r.legal, []);
       legalTexts.get(r.legal)!.push(r.label);
-      plan.push({ scope, value, type: "legal_text", key: r.legal });
     }
     if (r.registration && (isBaseline || r.registration !== base?.registration)) {
-      if (!regLines.has(r.registration)) regLines.set(r.registration, []);
-      regLines.get(r.registration)!.push(r.label);
-      plan.push({ scope, value, type: "registration_line", key: r.registration });
+      if (!registrationLines.has(r.registration)) registrationLines.set(r.registration, []);
+      registrationLines.get(r.registration)!.push(r.label);
     }
   }
 
-  // ── Report ───────────────────────────────────────────────
-  console.log(`Rows: ${rows.length}`);
+  const legalList = [...legalTexts].map(([content, labels]) => ({
+    name: `${labels[0]}${labels.length > 1 ? ` +${labels.length - 1} more` : ""}`,
+    content,
+    labels,
+  }));
+  const regList = [...registrationLines].map(([text, labels]) => ({
+    name: labels[0],
+    text,
+    labels,
+  }));
+
+  // Second pass now that names exist.
   for (const r of rows) {
-    const isBase = baseline.get(r.country) === r;
-    console.log(
-      `  ${isBase ? "country" : "office "} ${(isBase ? r.country : r.office) ?? "?"}`.padEnd(34) +
-        `certs:${r.certFiles.length}  ${r.label}`
-    );
+    const base = baseline.get(r.country);
+    const isBaseline = base === r;
+    if (!isBaseline && !r.office) continue;
+    const scope = isBaseline ? "country" : "office";
+    const scopeValue = isBaseline ? r.country : r.office;
+
+    if (r.legal && (isBaseline || r.legal !== base?.legal)) {
+      const lt = legalList.find((l) => l.content === r.legal)!;
+      assignments.push({ scope, scopeValue, resourceType: "legal_text", resourceName: lt.name });
+    }
+    if (r.registration && (isBaseline || r.registration !== base?.registration)) {
+      const rl = regList.find((l) => l.text === r.registration)!;
+      assignments.push({ scope, scopeValue, resourceType: "registration_line", resourceName: rl.name });
+    }
   }
-  console.log(`\nDistinct certifications : ${certFiles.size}`);
-  console.log(`Distinct legal texts    : ${legalTexts.size}`);
-  console.log(`Distinct registration   : ${regLines.size}`);
-  console.log(`Assignment rules        : ${plan.length}`);
 
-  // Countries/offices in the sheet that no synced user actually matches.
-  const users = await prisma.msUser.findMany({
-    select: { country: true, officeLocation: true },
-  });
-  const haveCountries = new Set(users.map((u) => u.country).filter(Boolean));
-  const haveOffices = new Set(users.map((u) => u.officeLocation).filter(Boolean));
-  const missCountry = [...new Set(rows.map((r) => r.country))].filter((c) => !haveCountries.has(c));
-  const missOffice = [...new Set(rows.map((r) => r.office).filter(Boolean))].filter(
-    (o) => !haveOffices.has(o as string)
-  );
+  const plan = {
+    generatedAt: new Date().toISOString(),
+    source: "seed/seed-data.xlsx",
+    rows: rows.map((r) => ({
+      label: r.label,
+      scope: baseline.get(r.country) === r ? "country" : "office",
+      scopeValue: baseline.get(r.country) === r ? r.country : r.office,
+      certificateCount: r.certFiles.length,
+    })),
+    certifications: [...certifications]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([name, file]) => ({ name, file })),
+    legalTexts: legalList.map(({ name, content }) => ({ name, content })),
+    registrationLines: regList.map(({ name, text }) => ({ name, text })),
+    assignments,
+    warnings,
+  };
 
-  console.log(`\nSynced users: ${users.length}`);
-  if (missCountry.length)
-    console.log(`  countries with no matching user: ${missCountry.join(", ")}`);
-  if (missOffice.length)
-    console.log(`  offices with no matching user  : ${missOffice.join(", ")}`);
-  console.log("  (rules are still created; they simply match nobody until users are synced)");
+  fs.writeFileSync(OUT_PATH, JSON.stringify(plan, null, 2) + "\n");
 
+  console.log(`Wrote ${path.relative(ROOT, OUT_PATH)}`);
+  console.log(`  rows               : ${plan.rows.length}`);
+  console.log(`  certifications     : ${plan.certifications.length}`);
+  console.log(`  legal texts        : ${plan.legalTexts.length}`);
+  console.log(`  registration lines : ${plan.registrationLines.length}`);
+  console.log(`  assignments        : ${plan.assignments.length}`);
   if (warnings.length) {
     console.log(`\nWarnings (${warnings.length}):`);
     warnings.forEach((w) => console.log("  ! " + w));
   }
-
-  if (!COMMIT) {
-    console.log("\nDry run complete. Re-run with --commit to write.");
-    return;
-  }
-
-  // ── Write ────────────────────────────────────────────────
-  const certIds = new Map<string, string>();
-  let order = 0;
-  for (const file of [...certFiles].sort()) {
-    const name = certName(file);
-    const existing = await prisma.certification.findFirst({ where: { name } });
-    const data = { name, alt: name, image: toDataUri(file), sortOrder: order++ };
-    const rec = existing
-      ? await prisma.certification.update({ where: { id: existing.id }, data })
-      : await prisma.certification.create({ data });
-    certIds.set(name, rec.id);
-  }
-  console.log(`\ncertifications: ${certIds.size}`);
-
-  const legalIds = new Map<string, string>();
-  for (const [content, labels] of legalTexts) {
-    const name = `${labels[0]}${labels.length > 1 ? ` +${labels.length - 1} more` : ""}`;
-    const existing = await prisma.legalText.findFirst({ where: { content } });
-    const rec = existing
-      ? await prisma.legalText.update({ where: { id: existing.id }, data: { name } })
-      : await prisma.legalText.create({ data: { name, content } });
-    legalIds.set(content, rec.id);
-  }
-  console.log(`legal texts   : ${legalIds.size}`);
-
-  const regIds = new Map<string, string>();
-  for (const [text, labels] of regLines) {
-    const name = labels[0];
-    const existing = await prisma.registrationLine.findFirst({ where: { text } });
-    const rec = existing
-      ? await prisma.registrationLine.update({ where: { id: existing.id }, data: { name } })
-      : await prisma.registrationLine.create({ data: { name, text } });
-    regIds.set(text, rec.id);
-  }
-  console.log(`registration  : ${regIds.size}`);
-
-  let created = 0;
-  for (const p of plan) {
-    const resourceId =
-      p.type === "certification"
-        ? certIds.get(p.key)
-        : p.type === "legal_text"
-          ? legalIds.get(p.key)
-          : regIds.get(p.key);
-    if (!resourceId) continue;
-
-    const existing = await prisma.assignment.findFirst({
-      where: { scope: p.scope, scopeValue: p.value, resourceType: p.type, resourceId },
-    });
-    if (!existing) {
-      await prisma.assignment.create({
-        data: { scope: p.scope, scopeValue: p.value, resourceType: p.type, resourceId },
-      });
-      created++;
-    }
-  }
-  console.log(`assignments   : ${created} created (${plan.length - created} already present)`);
-  console.log("\nDone.");
 }
 
-main()
-  .catch((e) => {
-    console.error("FAILED:", e);
-    process.exitCode = 1;
-  })
-  .finally(() => prisma.$disconnect());
+main();
