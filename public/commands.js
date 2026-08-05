@@ -54,8 +54,6 @@ function getSsoToken(allowPrompt, callback) {
  */
 function fetchSignatureHtml(email, token, callback) {
   var url = API_URL + "?email=" + encodeURIComponent(email);
-  // trusted=office keeps the no-token path working as before.
-  if (!token) url += "&trusted=office";
 
   var xhr = new XMLHttpRequest();
   xhr.open("GET", url, true);
@@ -94,6 +92,40 @@ function notify(item, key, message) {
     icon: "icon16",
     persistent: false,
   });
+}
+
+/**
+ * Notification carrying a button that opens the taskpane. Not every Outlook
+ * build supports actionable (insight) notifications, so fall back to a plain
+ * message rather than leaving the user with nothing.
+ */
+function notifyWithPanelAction(item, key, message, actionText) {
+  try {
+    item.notificationMessages.addAsync(
+      key,
+      {
+        type: "insightMessage",
+        message: message,
+        icon: "icon16",
+        actions: [
+          {
+            actionType: "showTaskPane",
+            actionText: actionText,
+            commandId: "btnTaskpane",
+          },
+        ],
+      },
+      function (result) {
+        if (result.status !== Office.AsyncResultStatus.Succeeded) {
+          console.log("Insight notification unavailable:", result.error && result.error.message);
+          notify(item, key, message);
+        }
+      }
+    );
+  } catch (e) {
+    console.log("Insight notification threw:", e);
+    notify(item, key, message);
+  }
 }
 
 function notifyError(item, key, message) {
@@ -144,6 +176,23 @@ function continueWithEmail(userEmail, token, item, event, isAuto) {
     return;
   }
 
+  // The API now requires a verified SSO token — it is both the credential and
+  // the only way to identify who is sending from a shared mailbox. Auto-insert
+  // can't prompt, so consent has to be granted once from the taskpane.
+  if (!token) {
+    console.log("No SSO token available");
+    if (!isAuto) {
+      notifyWithPanelAction(
+        item,
+        "sigAuth",
+        "BSS Signature needs your permission once before it can insert signatures.",
+        "Grant access"
+      );
+    }
+    if (event) event.completed();
+    return;
+  }
+
   fetchSignatureHtml(cleanEmail, token, function (err, html, meta) {
     if (err) {
       console.error("Signature fetch error:", err.message);
@@ -159,11 +208,12 @@ function continueWithEmail(userEmail, token, item, event, isAuto) {
     // taskpane picker instead of guessing.
     if (meta && meta.needsSelection) {
       console.log("Shared mailbox needs manual sender selection:", meta.sharedMailbox);
-      notify(
+      notifyWithPanelAction(
         item,
         "sigPick",
-        "Open the BSS Signature panel to choose who is sending from " +
-          (meta.sharedMailbox || "this shared mailbox") + "."
+        "Couldn't tell who is sending from " +
+          (meta.sharedMailbox || "this shared mailbox") + ".",
+        "Choose sender"
       );
       if (event) event.completed();
       return;

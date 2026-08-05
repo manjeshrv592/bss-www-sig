@@ -11,8 +11,14 @@ export const fetchCache = "default-no-store";
 
 export async function GET(request: NextRequest) {
   try {
-    // TEMPORARY: SSO disabled for debugging. Remove this block to re-enable.
-    const SKIP_AUTH = process.env.SKIP_SIGNATURE_AUTH === "true";
+    // Local-development escape hatch. Deliberately ignored in production: this
+    // endpoint returns personal data (name, job title, phone numbers, postal
+    // address), so a deployed environment must never serve it unauthenticated.
+    // There is no `trusted=office`-style bypass — a query parameter is not a
+    // credential and anyone can send one.
+    const SKIP_AUTH =
+      process.env.SKIP_SIGNATURE_AUTH === "true" &&
+      process.env.NODE_ENV !== "production";
 
     const { searchParams } = new URL(request.url);
     let email: string | undefined;
@@ -21,15 +27,10 @@ export async function GET(request: NextRequest) {
     // always a real person — that is what makes shared mailboxes resolvable.
     let signedInEmail: string | undefined;
 
-    // Check if this is a trusted request from Office add-in (auto-insert fallback)
-    const trustedSource = searchParams.get("trusted");
-
     const authHeader = request.headers.get("authorization");
     const hasToken = authHeader?.startsWith("Bearer ") ?? false;
 
     if (hasToken) {
-      // Always verify a token when one is supplied, even in SKIP_AUTH mode:
-      // it is the only trustworthy way to identify a shared mailbox sender.
       const token = authHeader!.slice(7);
       try {
         const tokenPayload = await verifyOfficeToken(token);
@@ -39,18 +40,21 @@ export async function GET(request: NextRequest) {
           tokenPayload.email?.toLowerCase();
         email = searchParams.get("email")?.toLowerCase() ?? signedInEmail;
       } catch (err) {
-        // In SKIP_AUTH / trusted mode a bad token is not fatal — we simply
-        // cannot identify the sender and may fall back to manual selection.
-        if (!SKIP_AUTH && trustedSource !== "office") {
-          const message =
-            err instanceof Error ? err.message : "Token verification failed";
+        const message =
+          err instanceof Error ? err.message : "Token verification failed";
+        // Logged loudly: a token that fails to verify is almost always an
+        // AZURE_AD_APP_URI / manifest <Resource> mismatch, and silently
+        // ignoring it degrades into "sender unknown" with no visible cause.
+        console.error("Office SSO token rejected:", message);
+        if (!SKIP_AUTH) {
           return NextResponse.json({ error: message }, { status: 401 });
         }
         email = searchParams.get("email")?.toLowerCase();
       }
-    } else if (SKIP_AUTH || trustedSource === "office") {
-      // No auth — just use email from query param.
-      // trusted=office is used by auto-insert when SSO token isn't available.
+    } else if (SKIP_AUTH) {
+      console.warn(
+        "SKIP_SIGNATURE_AUTH is on — serving signature without authentication (development only)"
+      );
       email = searchParams.get("email")?.toLowerCase();
     } else {
       return NextResponse.json(

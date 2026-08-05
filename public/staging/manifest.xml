@@ -72,9 +72,13 @@
           <DesktopFormFactor>
             <FunctionFile resid="commandsUrl"/>
 
-            <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+            <!-- The taskpane button lives on the READ surface so the compose ribbon
+                 stays a single one-click control. It still exists in the manifest,
+                 which is what lets an actionable notification open the panel via
+                 commandId="btnTaskpane" when a sender can't be identified. -->
+            <ExtensionPoint xsi:type="MessageReadCommandSurface">
               <OfficeTab id="TabDefault">
-                <Group id="bssSignatureGroup">
+                <Group id="bssSignatureReadGroup">
                   <Label resid="groupLabel"/>
 
                   <Control xsi:type="Button" id="btnTaskpane">
@@ -92,6 +96,15 @@
                       <SourceLocation resid="taskpaneUrl"/>
                     </Action>
                   </Control>
+
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+
+            <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="bssSignatureGroup">
+                  <Label resid="groupLabel"/>
 
                   <Control xsi:type="Button" id="btnInsertSignature">
                     <Label resid="insertLabel"/>
@@ -137,11 +150,11 @@
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="groupLabel" DefaultValue="BSS Signature"/>
-          <bt:String id="taskpaneLabel" DefaultValue="Sign In"/>
+          <bt:String id="taskpaneLabel" DefaultValue="Signature Panel"/>
           <bt:String id="insertLabel" DefaultValue="Insert Signature"/>
         </bt:ShortStrings>
         <bt:LongStrings>
-          <bt:String id="taskpaneDesc" DefaultValue="Sign in to authenticate before inserting your signature."/>
+          <bt:String id="taskpaneDesc" DefaultValue="Preview your signature and choose a sender for shared mailboxes."/>
           <bt:String id="insertDesc" DefaultValue="Insert your BSS email signature"/>
         </bt:LongStrings>
       </Resources>

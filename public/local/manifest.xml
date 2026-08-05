@@ -72,9 +72,13 @@
           <DesktopFormFactor>
             <FunctionFile resid="commandsUrl"/>
 
-            <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+            <!-- The taskpane button lives on the READ surface so the compose ribbon
+                 stays a single one-click control. It still exists in the manifest,
+                 which is what lets an actionable notification open the panel via
+                 commandId="btnTaskpane" when a sender can't be identified. -->
+            <ExtensionPoint xsi:type="MessageReadCommandSurface">
               <OfficeTab id="TabDefault">
-                <Group id="bssSignatureGroup">
+                <Group id="bssSignatureReadGroup">
                   <Label resid="groupLabel"/>
 
                   <Control xsi:type="Button" id="btnTaskpane">
@@ -93,11 +97,20 @@
                     </Action>
                   </Control>
 
-                  <Control xsi:type="Button" id="btnRefresh">
-                    <Label resid="refreshLabel"/>
+                </Group>
+              </OfficeTab>
+            </ExtensionPoint>
+
+            <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+              <OfficeTab id="TabDefault">
+                <Group id="bssSignatureGroup">
+                  <Label resid="groupLabel"/>
+
+                  <Control xsi:type="Button" id="btnInsertSignature">
+                    <Label resid="insertLabel"/>
                     <Supertip>
-                      <Title resid="refreshLabel"/>
-                      <Description resid="refreshDesc"/>
+                      <Title resid="insertLabel"/>
+                      <Description resid="insertDesc"/>
                     </Supertip>
                     <Icon>
                       <bt:Image size="16" resid="icon16"/>
@@ -137,12 +150,12 @@
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="groupLabel" DefaultValue="BSS Signature"/>
-          <bt:String id="taskpaneLabel" DefaultValue="Signature"/>
-          <bt:String id="refreshLabel" DefaultValue="Refresh Signature"/>
+          <bt:String id="taskpaneLabel" DefaultValue="Signature Panel"/>
+          <bt:String id="insertLabel" DefaultValue="Insert Signature"/>
         </bt:ShortStrings>
         <bt:LongStrings>
-          <bt:String id="taskpaneDesc" DefaultValue="Open the signature panel to preview and apply your email signature."/>
-          <bt:String id="refreshDesc" DefaultValue="Fetch and apply your latest email signature."/>
+          <bt:String id="taskpaneDesc" DefaultValue="Preview your signature and choose a sender for shared mailboxes."/>
+          <bt:String id="insertDesc" DefaultValue="Insert your BSS email signature"/>
         </bt:LongStrings>
       </Resources>
 
