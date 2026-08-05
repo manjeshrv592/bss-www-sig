@@ -2,8 +2,18 @@ import { prisma } from "@/lib/prisma";
 import { AssignmentManager } from "./assignment-manager";
 
 export default async function AssignmentsPage() {
-  const [assignments, certifications, banners, legalTexts, countries, states, jobTitles, groups] =
-    await Promise.all([
+  const [
+    assignments,
+    certifications,
+    banners,
+    legalTexts,
+    registrationLines,
+    footerLines,
+    countries,
+    states,
+    jobTitles,
+    groups,
+  ] = await Promise.all([
       prisma.assignment.findMany({ orderBy: { createdAt: "desc" } }),
       prisma.certification.findMany({
         where: { isActive: true },
@@ -19,6 +29,16 @@ export default async function AssignmentsPage() {
         where: { isActive: true },
         select: { id: true, name: true },
         orderBy: { name: "asc" },
+      }),
+      prisma.registrationLine.findMany({
+        where: { isActive: true },
+        select: { id: true, text: true },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.footerLine.findMany({
+        where: { isActive: true },
+        select: { id: true, leftText: true, rightText: true },
+        orderBy: { createdAt: "asc" },
       }),
       prisma.msUser.findMany({
         where: { country: { not: null } },
@@ -64,6 +84,14 @@ export default async function AssignmentsPage() {
         certifications={certifications}
         banners={banners}
         legalTexts={legalTexts}
+        registrationLines={registrationLines.map((r) => ({
+          id: r.id,
+          name: r.text.length > 60 ? `${r.text.slice(0, 60)}…` : r.text,
+        }))}
+        footerLines={footerLines.map((f) => ({
+          id: f.id,
+          name: `${f.leftText}  ·  ${f.rightText}`,
+        }))}
         countries={countryList}
         states={stateList}
         jobTitles={jobTitleList}

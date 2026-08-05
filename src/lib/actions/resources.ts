@@ -228,6 +228,96 @@ export async function deleteLegalText(id: string) {
  * Persist a new legal text order. `orderedIds` must be the full list of legal
  * text ids in their intended display order.
  */
+// ─── Registration Lines ────────────────────────
+
+export async function createRegistrationLine(data: { text: string }) {
+  const line = await prisma.registrationLine.create({ data });
+  await logActivity({
+    action: `Created registration line`,
+    entity: "registration_line",
+    entityId: line.id,
+  });
+  revalidatePath("/registration-lines");
+  return line;
+}
+
+export async function updateRegistrationLine(
+  id: string,
+  data: { text?: string; isActive?: boolean }
+) {
+  const line = await prisma.registrationLine.update({ where: { id }, data });
+  await logActivity({
+    action: `Updated registration line`,
+    entity: "registration_line",
+    entityId: id,
+  });
+  revalidatePath("/registration-lines");
+  return line;
+}
+
+export async function deleteRegistrationLine(id: string) {
+  await prisma.registrationLine.delete({ where: { id } });
+  // Assignments reference resources by loose id, so clean up by hand.
+  await prisma.assignment.deleteMany({
+    where: { resourceType: "registration_line", resourceId: id },
+  });
+  await prisma.userOverride.deleteMany({
+    where: { resourceType: "registration_line", resourceId: id },
+  });
+  await logActivity({
+    action: `Deleted registration line`,
+    entity: "registration_line",
+    entityId: id,
+  });
+  revalidatePath("/registration-lines");
+}
+
+// ─── Footer Lines ──────────────────────────────
+
+export async function createFooterLine(data: {
+  leftText: string;
+  rightText: string;
+}) {
+  const line = await prisma.footerLine.create({ data });
+  await logActivity({
+    action: `Created footer line "${data.leftText}"`,
+    entity: "footer_line",
+    entityId: line.id,
+  });
+  revalidatePath("/footer-lines");
+  return line;
+}
+
+export async function updateFooterLine(
+  id: string,
+  data: { leftText?: string; rightText?: string; isActive?: boolean }
+) {
+  const line = await prisma.footerLine.update({ where: { id }, data });
+  await logActivity({
+    action: `Updated footer line "${line.leftText}"`,
+    entity: "footer_line",
+    entityId: id,
+  });
+  revalidatePath("/footer-lines");
+  return line;
+}
+
+export async function deleteFooterLine(id: string) {
+  const line = await prisma.footerLine.delete({ where: { id } });
+  await prisma.assignment.deleteMany({
+    where: { resourceType: "footer_line", resourceId: id },
+  });
+  await prisma.userOverride.deleteMany({
+    where: { resourceType: "footer_line", resourceId: id },
+  });
+  await logActivity({
+    action: `Deleted footer line "${line.leftText}"`,
+    entity: "footer_line",
+    entityId: id,
+  });
+  revalidatePath("/footer-lines");
+}
+
 export async function reorderLegalTexts(orderedIds: string[]) {
   await prisma.$transaction(
     orderedIds.map((id, index) =>

@@ -24,12 +24,16 @@ interface Props {
   certifications: Resource[];
   banners: Resource[];
   legalTexts: Resource[];
+  registrationLines: Resource[];
+  footerLines: Resource[];
 }
 
 const RESOURCE_LABELS: Record<string, string> = {
   certification: "Certification",
   banner: "Banner",
   legal_text: "Legal Text",
+  registration_line: "Registration Line",
+  footer_line: "Footer Line",
 };
 
 export function UserOverrideManager({
@@ -39,6 +43,8 @@ export function UserOverrideManager({
   certifications,
   banners,
   legalTexts,
+  registrationLines,
+  footerLines,
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [overrides, setOverrides] = useState<Override[]>(currentOverrides);
@@ -50,6 +56,8 @@ export function UserOverrideManager({
   const getResources = (type: string) => {
     if (type === "certification") return certifications;
     if (type === "banner") return banners;
+    if (type === "registration_line") return registrationLines;
+    if (type === "footer_line") return footerLines;
     return legalTexts;
   };
 
@@ -170,6 +178,8 @@ export function UserOverrideManager({
             <SelectItem value="certification">Certification</SelectItem>
             <SelectItem value="banner">Banner</SelectItem>
             <SelectItem value="legal_text">Legal Text</SelectItem>
+            <SelectItem value="registration_line">Registration Line</SelectItem>
+            <SelectItem value="footer_line">Footer Line</SelectItem>
           </SelectContent>
         </Select>
         <Select value={addId} onValueChange={setAddId}>

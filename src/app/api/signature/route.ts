@@ -125,6 +125,9 @@ export async function GET(request: NextRequest) {
         defaultCompanyName: signature.countryBranding.companyName,
         website: signature.countryBranding.website ?? undefined,
         logoUrl: `${baseUrl}/blackstone-logo.png`,
+        registrationText: signature.registrationLine?.text,
+        footerLeft: signature.footerLine?.leftText,
+        footerRight: signature.footerLine?.rightText,
       }
     );
 

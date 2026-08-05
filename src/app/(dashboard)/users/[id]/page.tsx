@@ -23,12 +23,15 @@ export default async function UserProfilePage(props: {
 }) {
   const { id } = await props.params;
 
-  const [user, signature, allCerts, allBanners, allLegal] = await Promise.all([
+  const [user, signature, allCerts, allBanners, allLegal, allRegistration, allFooter] =
+    await Promise.all([
     prisma.msUser.findUnique({ where: { id } }),
     resolveSignature(id),
     prisma.certification.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.banner.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.legalText.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.registrationLine.findMany({ where: { isActive: true }, select: { id: true, text: true }, orderBy: { createdAt: "asc" } }),
+    prisma.footerLine.findMany({ where: { isActive: true }, select: { id: true, leftText: true, rightText: true }, orderBy: { createdAt: "asc" } }),
   ]);
   if (!user) notFound();
 
@@ -170,6 +173,9 @@ export default async function UserProfilePage(props: {
                   {
                     defaultCompanyName: signature.countryBranding.companyName,
                     website: signature.countryBranding.website ?? undefined,
+                    registrationText: signature.registrationLine?.text,
+                    footerLeft: signature.footerLine?.leftText,
+                    footerRight: signature.footerLine?.rightText,
                   },
                 )}
               />
@@ -213,6 +219,22 @@ export default async function UserProfilePage(props: {
                 </div>
               </div>
             )}
+            <div className="grid gap-2 md:grid-cols-2 pt-2">
+              <div>
+                <p className="text-xs font-medium mb-1">Registration Line</p>
+                <p className="text-xs text-muted-foreground">
+                  {signature.registrationLine?.text ?? "None"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium mb-1">Footer Line</p>
+                <p className="text-xs text-muted-foreground">
+                  {signature.footerLine
+                    ? `${signature.footerLine.leftText}  ·  ${signature.footerLine.rightText}`
+                    : "Default (14 Countries - 25 Offices · country website)"}
+                </p>
+              </div>
+            </div>
             <div className="grid gap-2 md:grid-cols-3 pt-2">
               <div>
                 <p className="text-xs font-medium mb-1">Certifications ({signature.certifications.length})</p>
@@ -269,6 +291,14 @@ export default async function UserProfilePage(props: {
               certifications={allCerts}
               banners={allBanners}
               legalTexts={allLegal}
+              registrationLines={allRegistration.map((r) => ({
+                id: r.id,
+                name: r.text.length > 60 ? `${r.text.slice(0, 60)}…` : r.text,
+              }))}
+              footerLines={allFooter.map((f) => ({
+                id: f.id,
+                name: `${f.leftText}  ·  ${f.rightText}`,
+              }))}
             />
           </CardContent>
         </Card>

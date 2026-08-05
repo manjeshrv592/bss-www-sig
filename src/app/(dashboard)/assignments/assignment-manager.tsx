@@ -39,6 +39,8 @@ interface Props {
   certifications: Resource[];
   banners: Resource[];
   legalTexts: Resource[];
+  registrationLines: Resource[];
+  footerLines: Resource[];
   countries: string[];
   states: string[];
   jobTitles: string[];
@@ -65,13 +67,22 @@ const RESOURCE_LABELS: Record<string, string> = {
   certification: "Certification",
   banner: "Banner",
   legal_text: "Legal Text",
+  registration_line: "Registration Line",
+  footer_line: "Footer Line",
 };
+
+// These occupy a single slot in the template, so overlapping rules resolve by
+// scope specificity (group > job title > state > country > global) instead of
+// stacking the way list resources do.
+const SINGLE_SLOT_TYPES = new Set(["registration_line", "footer_line"]);
 
 export function AssignmentManager({
   assignments,
   certifications,
   banners,
   legalTexts,
+  registrationLines,
+  footerLines,
   countries,
   states,
   jobTitles,
@@ -85,17 +96,18 @@ export function AssignmentManager({
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const getResources = () => {
-    if (resourceType === "certification") return certifications;
-    if (resourceType === "banner") return banners;
-    return legalTexts;
+  const RESOURCE_LISTS: Record<string, Resource[]> = {
+    certification: certifications,
+    banner: banners,
+    legal_text: legalTexts,
+    registration_line: registrationLines,
+    footer_line: footerLines,
   };
 
-  const getResourceName = (type: string, id: string) => {
-    const list =
-      type === "certification" ? certifications : type === "banner" ? banners : legalTexts;
-    return list.find((r) => r.id === id)?.name ?? id;
-  };
+  const getResources = () => RESOURCE_LISTS[resourceType] ?? [];
+
+  const getResourceName = (type: string, id: string) =>
+    (RESOURCE_LISTS[type] ?? []).find((r) => r.id === id)?.name ?? id;
 
   // Every scope except "global" is meaningless without a value to match on.
   const needsScopeValue = scope !== "global";
@@ -249,8 +261,16 @@ export function AssignmentManager({
                     <SelectItem value="certification">Certification</SelectItem>
                     <SelectItem value="banner">Banner</SelectItem>
                     <SelectItem value="legal_text">Legal Text</SelectItem>
+                    <SelectItem value="registration_line">Registration Line</SelectItem>
+                    <SelectItem value="footer_line">Footer Line</SelectItem>
                   </SelectContent>
                 </Select>
+                {SINGLE_SLOT_TYPES.has(resourceType) && (
+                  <p className="text-xs text-muted-foreground">
+                    Only one applies per user. If several rules match, the most
+                    specific wins — group, then job title, state, country, global.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">

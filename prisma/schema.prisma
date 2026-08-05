@@ -162,6 +162,32 @@ model LegalText {
   @@map("legal_texts")
 }
 
+/// A single line rendered directly beneath the disclaimer, in the same style.
+/// Singular in the signature, so assignment conflicts resolve by scope
+/// specificity rather than the OR + dedupe used for list resources.
+model RegistrationLine {
+  id        String   @id @default(cuid())
+  text      String   @db.Text
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("registration_lines")
+}
+
+/// The bottom row of the signature: left cell and right cell. Replaces the
+/// hard-coded "14 Countries - 25 Offices" / website pair. Also singular.
+model FooterLine {
+  id        String   @id @default(cuid())
+  leftText  String   @map("left_text")
+  rightText String   @map("right_text")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("footer_lines")
+}
+
 model MsGroup {
   id          String   @id @default(cuid())
   msId        String   @unique @map("ms_id")

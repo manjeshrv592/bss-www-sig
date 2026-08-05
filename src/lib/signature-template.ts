@@ -41,6 +41,11 @@ interface SignatureOptions {
   website?: string;
   tagline?: string;
   defaultCompanyName?: string;
+  /** Single line under the disclaimer, styled to match it. */
+  registrationText?: string | null;
+  /** Footer cells. Fall back to the tagline/website defaults when unassigned. */
+  footerLeft?: string | null;
+  footerRight?: string | null;
 }
 
 const DEFAULT_OPTIONS: SignatureOptions = {
@@ -128,9 +133,28 @@ export function generateSignatureHtml(
     return html.replace(/class\s*=\s*"[^"]*"/g, "");
   }
 
+  // Escape user-entered plain text so it can't inject markup into the signature.
+  function escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // Registration line — sits directly under the disclaimer and deliberately
+  // reuses the disclaimer's styling.
+  const registrationText = options.registrationText?.trim();
+  const registrationHtml = registrationText
+    ? `
+      <div style="font-size: 12px; color: #6b7280; line-height: 1.4; word-wrap: break-word; overflow-wrap: break-word; text-align: justify; padding-top: 8px;">
+        ${escapeHtml(registrationText)}
+      </div>`
+    : "";
+
   // Generate legal text HTML
   let legalTextHtml = "";
-  if (legalTexts.length > 0) {
+  if (legalTexts.length > 0 || registrationHtml) {
     const ltContent = legalTexts
       .map(
         (lt) => `
@@ -147,10 +171,32 @@ export function generateSignatureHtml(
       <tr>
         <td>
           ${ltContent}
+          ${registrationHtml}
         </td>
       </tr>
     </table>`;
   }
+
+  // Footer cells. An assigned footer line replaces the defaults; otherwise the
+  // original tagline/website pair is used, so unassigned users are unaffected.
+  const footerLeft = options.footerLeft?.trim() || options.tagline || "";
+  const footerRight = options.footerRight?.trim() || website || "";
+
+  // A footer cell that looks like a web address is rendered as a link, matching
+  // how the website has always been shown there.
+  function footerCellHtml(value: string): string {
+    if (!value) return "";
+    const looksLikeUrl = /^(https?:\/\/|www\.)|^[\w-]+(\.[\w-]+)+\/?$/i.test(value);
+    if (!looksLikeUrl) {
+      return `<span style="color: #2563eb; font-weight: 600;">${escapeHtml(value)}</span>`;
+    }
+    const href = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+    const label = value.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+    return `<a href="${escapeHtml(href)}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600;">${escapeHtml(label)}</a>`;
+  }
+
+  const footerLeftHtml = footerCellHtml(footerLeft);
+  const footerRightHtml = footerCellHtml(footerRight);
 
   // Build address HTML for right column
   // Use <br> instead of display:block spans — classic Outlook (Word renderer) ignores display:block on spans
@@ -261,11 +307,11 @@ export function generateSignatureHtml(
   <table cellpadding="0" cellspacing="0" border="0" width="500" style="margin-top: 15px; width: 500px;">
     <tr>
       <td style="font-size: 14px; color: #2563eb; font-weight: 600; white-space: nowrap;">
-        ${options.tagline ?? ""}
+        ${footerLeftHtml}
       </td>
-      ${website ? `
+      ${footerRightHtml ? `
       <td align="right" style="font-size: 14px; text-align: right; white-space: nowrap;">
-        <a href="${website}" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600;">${website.replace(/^https?:\/\//, "")}</a>
+        ${footerRightHtml}
       </td>
       ` : ""}
     </tr>

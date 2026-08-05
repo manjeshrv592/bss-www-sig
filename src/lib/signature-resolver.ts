@@ -9,9 +9,50 @@ export interface ResolvedSignature {
   certifications: { id: string; name: string; image: string | null; alt: string | null }[];
   banners: { id: string; name: string; image: string | null; alt: string | null; link: string | null }[];
   legalTexts: { id: string; name: string; content: string }[];
+  registrationLine: { id: string; text: string } | null;
+  footerLine: { id: string; leftText: string; rightText: string } | null;
   countryBranding: CountryBranding;
   isOverridden: boolean;
   matchedRules: { scope: string; scopeValue: string | null }[];
+}
+
+/**
+ * How specific a scope is. Certifications, banners and legal texts are lists,
+ * so every matching rule contributes (OR + dedupe). The registration and footer
+ * lines are single slots in the template, so stacking them would render broken
+ * output — for those, the most specific matching rule wins instead.
+ */
+const SCOPE_SPECIFICITY: Record<string, number> = {
+  global: 0,
+  country: 1,
+  state: 2,
+  job_title: 3,
+  group: 4,
+};
+
+/**
+ * Pick the winning assignment for a single-slot resource: highest specificity,
+ * then the most recently created rule as a deterministic tie-break (e.g. a user
+ * in two groups that each assign a footer).
+ */
+function pickMostSpecific(
+  assignments: { scope: string; resourceId: string; createdAt: Date }[]
+) {
+  let best: { scope: string; resourceId: string; createdAt: Date } | null = null;
+
+  for (const a of assignments) {
+    if (!best) {
+      best = a;
+      continue;
+    }
+    const rank = SCOPE_SPECIFICITY[a.scope] ?? -1;
+    const bestRank = SCOPE_SPECIFICITY[best.scope] ?? -1;
+    if (rank > bestRank || (rank === bestRank && a.createdAt > best.createdAt)) {
+      best = a;
+    }
+  }
+
+  return best?.resourceId ?? null;
 }
 
 export async function resolveSignature(msUserId: string): Promise<ResolvedSignature> {
@@ -28,7 +69,16 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
   ]);
 
   if (!user) {
-    return { certifications: [], banners: [], legalTexts: [], countryBranding: DEFAULT_BRANDING, isOverridden: false, matchedRules: [] };
+    return {
+      certifications: [],
+      banners: [],
+      legalTexts: [],
+      registrationLine: null,
+      footerLine: null,
+      countryBranding: DEFAULT_BRANDING,
+      isOverridden: false,
+      matchedRules: [],
+    };
   }
 
   // Resolve country branding (can run in parallel with override check)
@@ -45,8 +95,15 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
     const legalIds = user.overrides
       .filter((o) => o.resourceType === "legal_text")
       .map((o) => o.resourceId);
+    // Single-slot resources: an override can only name one of each.
+    const registrationId = user.overrides.find(
+      (o) => o.resourceType === "registration_line"
+    )?.resourceId;
+    const footerId = user.overrides.find(
+      (o) => o.resourceType === "footer_line"
+    )?.resourceId;
 
-    const [certifications, banners, legalTexts] = await Promise.all([
+    const [certifications, banners, legalTexts, registrationLine, footerLine] = await Promise.all([
       prisma.certification.findMany({
         where: { id: { in: certIds }, isActive: true },
         select: { id: true, name: true, image: true, alt: true },
@@ -62,10 +119,31 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
         select: { id: true, name: true, content: true },
         orderBy: { sortOrder: "asc" },
       }),
+      registrationId
+        ? prisma.registrationLine.findFirst({
+            where: { id: registrationId, isActive: true },
+            select: { id: true, text: true },
+          })
+        : Promise.resolve(null),
+      footerId
+        ? prisma.footerLine.findFirst({
+            where: { id: footerId, isActive: true },
+            select: { id: true, leftText: true, rightText: true },
+          })
+        : Promise.resolve(null),
     ]);
 
     const countryBranding = await countryBrandingPromise;
-    return { certifications, banners, legalTexts, countryBranding, isOverridden: true, matchedRules: [] };
+    return {
+      certifications,
+      banners,
+      legalTexts,
+      registrationLine,
+      footerLine,
+      countryBranding,
+      isOverridden: true,
+      matchedRules: [],
+    };
   }
 
   // Build scope conditions for this user (OR logic)
@@ -102,6 +180,10 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
   const certIdSet = new Set<string>();
   const bannerIdSet = new Set<string>();
   const legalIdSet = new Set<string>();
+  // Single-slot resources are collected rather than deduped, so the most
+  // specific matching rule can be chosen below.
+  const registrationCandidates: typeof assignments = [];
+  const footerCandidates: typeof assignments = [];
   const matchedRules: { scope: string; scopeValue: string | null }[] = [];
 
   const seenScopes = new Set<string>();
@@ -115,9 +197,14 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
     if (a.resourceType === "certification") certIdSet.add(a.resourceId);
     else if (a.resourceType === "banner") bannerIdSet.add(a.resourceId);
     else if (a.resourceType === "legal_text") legalIdSet.add(a.resourceId);
+    else if (a.resourceType === "registration_line") registrationCandidates.push(a);
+    else if (a.resourceType === "footer_line") footerCandidates.push(a);
   }
 
-  const [certifications, banners, legalTexts] = await Promise.all([
+  const registrationId = pickMostSpecific(registrationCandidates);
+  const footerId = pickMostSpecific(footerCandidates);
+
+  const [certifications, banners, legalTexts, registrationLine, footerLine] = await Promise.all([
     certIdSet.size > 0
       ? prisma.certification.findMany({
           where: { id: { in: [...certIdSet] }, isActive: true },
@@ -154,10 +241,31 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
           orderBy: { sortOrder: "asc" },
         })
       : Promise.resolve([]),
+    registrationId
+      ? prisma.registrationLine.findFirst({
+          where: { id: registrationId, isActive: true },
+          select: { id: true, text: true },
+        })
+      : Promise.resolve(null),
+    footerId
+      ? prisma.footerLine.findFirst({
+          where: { id: footerId, isActive: true },
+          select: { id: true, leftText: true, rightText: true },
+        })
+      : Promise.resolve(null),
   ]);
 
   const countryBranding = await countryBrandingPromise;
-  return { certifications, banners, legalTexts, countryBranding, isOverridden: false, matchedRules };
+  return {
+    certifications,
+    banners,
+    legalTexts,
+    registrationLine,
+    footerLine,
+    countryBranding,
+    isOverridden: false,
+    matchedRules,
+  };
 }
 
 const DEFAULT_BRANDING: CountryBranding = {
