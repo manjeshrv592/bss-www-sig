@@ -32,13 +32,13 @@ export default async function AssignmentsPage() {
       }),
       prisma.registrationLine.findMany({
         where: { isActive: true },
-        select: { id: true, text: true },
-        orderBy: { createdAt: "asc" },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
       }),
       prisma.footerLine.findMany({
         where: { isActive: true },
-        select: { id: true, leftText: true, rightText: true },
-        orderBy: { createdAt: "asc" },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
       }),
       prisma.msUser.findMany({
         where: { country: { not: null } },
@@ -84,14 +84,8 @@ export default async function AssignmentsPage() {
         certifications={certifications}
         banners={banners}
         legalTexts={legalTexts}
-        registrationLines={registrationLines.map((r) => ({
-          id: r.id,
-          name: r.text.length > 60 ? `${r.text.slice(0, 60)}…` : r.text,
-        }))}
-        footerLines={footerLines.map((f) => ({
-          id: f.id,
-          name: `${f.leftText}  ·  ${f.rightText}`,
-        }))}
+        registrationLines={registrationLines}
+        footerLines={footerLines}
         countries={countryList}
         states={stateList}
         jobTitles={jobTitleList}

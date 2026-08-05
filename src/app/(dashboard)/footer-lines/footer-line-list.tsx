@@ -20,6 +20,7 @@ import {
 
 interface FooterLine {
   id: string;
+  name: string;
   leftText: string;
   rightText: string;
   isActive: boolean;
@@ -35,14 +36,16 @@ export function FooterLineList({ lines }: { lines: FooterLine[] }) {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    const name = (form.get("name") as string).trim();
     const leftText = (form.get("leftText") as string).trim();
     const rightText = (form.get("rightText") as string).trim();
+    if (!name) return;
 
     startTransition(async () => {
       if (editItem) {
-        await updateFooterLine(editItem.id, { leftText, rightText });
+        await updateFooterLine(editItem.id, { name, leftText, rightText });
       } else {
-        await createFooterLine({ leftText, rightText });
+        await createFooterLine({ name, leftText, rightText });
       }
       setOpen(false);
       setEditItem(null);
@@ -88,6 +91,19 @@ export function FooterLineList({ lines }: { lines: FooterLine[] }) {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Title</label>
+                <input
+                  name="name"
+                  required
+                  defaultValue={editItem?.name ?? ""}
+                  placeholder="e.g. India Footer"
+                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Only used to identify this line when assigning it.
+                </p>
+              </div>
               <div>
                 <label className="text-sm font-medium">Left</label>
                 <input
@@ -159,6 +175,7 @@ export function FooterLineList({ lines }: { lines: FooterLine[] }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="px-4 py-3 font-medium">Title</th>
                   <th className="px-4 py-3 font-medium">Left</th>
                   <th className="px-4 py-3 font-medium">Right</th>
                   <th className="px-4 py-3 font-medium">Status</th>
@@ -173,7 +190,8 @@ export function FooterLineList({ lines }: { lines: FooterLine[] }) {
                       !line.isActive ? "opacity-50" : ""
                     }`}
                   >
-                    <td className="px-4 py-3 font-medium">{line.leftText}</td>
+                    <td className="px-4 py-3 font-medium whitespace-nowrap">{line.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{line.leftText}</td>
                     <td className="px-4 py-3 text-muted-foreground">{line.rightText}</td>
                     <td className="px-4 py-3">
                       <span

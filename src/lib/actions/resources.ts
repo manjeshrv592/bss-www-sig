@@ -230,10 +230,13 @@ export async function deleteLegalText(id: string) {
  */
 // ─── Registration Lines ────────────────────────
 
-export async function createRegistrationLine(data: { text: string }) {
+export async function createRegistrationLine(data: {
+  name: string;
+  text: string;
+}) {
   const line = await prisma.registrationLine.create({ data });
   await logActivity({
-    action: `Created registration line`,
+    action: `Created registration line "${data.name}"`,
     entity: "registration_line",
     entityId: line.id,
   });
@@ -243,11 +246,11 @@ export async function createRegistrationLine(data: { text: string }) {
 
 export async function updateRegistrationLine(
   id: string,
-  data: { text?: string; isActive?: boolean }
+  data: { name?: string; text?: string; isActive?: boolean }
 ) {
   const line = await prisma.registrationLine.update({ where: { id }, data });
   await logActivity({
-    action: `Updated registration line`,
+    action: `Updated registration line "${line.name}"`,
     entity: "registration_line",
     entityId: id,
   });
@@ -256,7 +259,7 @@ export async function updateRegistrationLine(
 }
 
 export async function deleteRegistrationLine(id: string) {
-  await prisma.registrationLine.delete({ where: { id } });
+  const removed = await prisma.registrationLine.delete({ where: { id } });
   // Assignments reference resources by loose id, so clean up by hand.
   await prisma.assignment.deleteMany({
     where: { resourceType: "registration_line", resourceId: id },
@@ -265,7 +268,7 @@ export async function deleteRegistrationLine(id: string) {
     where: { resourceType: "registration_line", resourceId: id },
   });
   await logActivity({
-    action: `Deleted registration line`,
+    action: `Deleted registration line "${removed.name}"`,
     entity: "registration_line",
     entityId: id,
   });
@@ -275,12 +278,13 @@ export async function deleteRegistrationLine(id: string) {
 // ─── Footer Lines ──────────────────────────────
 
 export async function createFooterLine(data: {
+  name: string;
   leftText: string;
   rightText: string;
 }) {
   const line = await prisma.footerLine.create({ data });
   await logActivity({
-    action: `Created footer line "${data.leftText}"`,
+    action: `Created footer line "${data.name}"`,
     entity: "footer_line",
     entityId: line.id,
   });
@@ -290,11 +294,11 @@ export async function createFooterLine(data: {
 
 export async function updateFooterLine(
   id: string,
-  data: { leftText?: string; rightText?: string; isActive?: boolean }
+  data: { name?: string; leftText?: string; rightText?: string; isActive?: boolean }
 ) {
   const line = await prisma.footerLine.update({ where: { id }, data });
   await logActivity({
-    action: `Updated footer line "${line.leftText}"`,
+    action: `Updated footer line "${line.name}"`,
     entity: "footer_line",
     entityId: id,
   });
@@ -311,7 +315,7 @@ export async function deleteFooterLine(id: string) {
     where: { resourceType: "footer_line", resourceId: id },
   });
   await logActivity({
-    action: `Deleted footer line "${line.leftText}"`,
+    action: `Deleted footer line "${line.name}"`,
     entity: "footer_line",
     entityId: id,
   });

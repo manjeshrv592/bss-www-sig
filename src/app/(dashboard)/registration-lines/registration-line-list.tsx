@@ -20,6 +20,7 @@ import {
 
 interface RegistrationLine {
   id: string;
+  name: string;
   text: string;
   isActive: boolean;
   createdAt: Date;
@@ -33,14 +34,16 @@ export function RegistrationLineList({ lines }: { lines: RegistrationLine[] }) {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const text = (new FormData(e.currentTarget).get("text") as string).trim();
-    if (!text) return;
+    const form = new FormData(e.currentTarget);
+    const name = (form.get("name") as string).trim();
+    const text = (form.get("text") as string).trim();
+    if (!name || !text) return;
 
     startTransition(async () => {
       if (editItem) {
-        await updateRegistrationLine(editItem.id, { text });
+        await updateRegistrationLine(editItem.id, { name, text });
       } else {
-        await createRegistrationLine({ text });
+        await createRegistrationLine({ name, text });
       }
       setOpen(false);
       setEditItem(null);
@@ -86,6 +89,19 @@ export function RegistrationLineList({ lines }: { lines: RegistrationLine[] }) {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Title</label>
+                <input
+                  name="name"
+                  required
+                  defaultValue={editItem?.name ?? ""}
+                  placeholder="e.g. India Registration"
+                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Only used to identify this line when assigning it.
+                </p>
+              </div>
               <div>
                 <label className="text-sm font-medium">Text</label>
                 <textarea
@@ -138,6 +154,7 @@ export function RegistrationLineList({ lines }: { lines: RegistrationLine[] }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="px-4 py-3 font-medium">Title</th>
                   <th className="px-4 py-3 font-medium">Text</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium text-right">Actions</th>
@@ -151,7 +168,8 @@ export function RegistrationLineList({ lines }: { lines: RegistrationLine[] }) {
                       !line.isActive ? "opacity-50" : ""
                     }`}
                   >
-                    <td className="px-4 py-3 max-w-[520px]">
+                    <td className="px-4 py-3 font-medium whitespace-nowrap">{line.name}</td>
+                    <td className="px-4 py-3 max-w-[420px]">
                       <p className="text-xs text-muted-foreground">{line.text}</p>
                     </td>
                     <td className="px-4 py-3">

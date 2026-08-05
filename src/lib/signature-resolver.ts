@@ -9,8 +9,8 @@ export interface ResolvedSignature {
   certifications: { id: string; name: string; image: string | null; alt: string | null }[];
   banners: { id: string; name: string; image: string | null; alt: string | null; link: string | null }[];
   legalTexts: { id: string; name: string; content: string }[];
-  registrationLine: { id: string; text: string } | null;
-  footerLine: { id: string; leftText: string; rightText: string } | null;
+  registrationLine: { id: string; name: string; text: string } | null;
+  footerLine: { id: string; name: string; leftText: string; rightText: string } | null;
   countryBranding: CountryBranding;
   isOverridden: boolean;
   matchedRules: { scope: string; scopeValue: string | null }[];
@@ -122,13 +122,13 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
       registrationId
         ? prisma.registrationLine.findFirst({
             where: { id: registrationId, isActive: true },
-            select: { id: true, text: true },
+            select: { id: true, name: true, text: true },
           })
         : Promise.resolve(null),
       footerId
         ? prisma.footerLine.findFirst({
             where: { id: footerId, isActive: true },
-            select: { id: true, leftText: true, rightText: true },
+            select: { id: true, name: true, leftText: true, rightText: true },
           })
         : Promise.resolve(null),
     ]);
@@ -244,13 +244,13 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
     registrationId
       ? prisma.registrationLine.findFirst({
           where: { id: registrationId, isActive: true },
-          select: { id: true, text: true },
+          select: { id: true, name: true, text: true },
         })
       : Promise.resolve(null),
     footerId
       ? prisma.footerLine.findFirst({
           where: { id: footerId, isActive: true },
-          select: { id: true, leftText: true, rightText: true },
+          select: { id: true, name: true, leftText: true, rightText: true },
         })
       : Promise.resolve(null),
   ]);
