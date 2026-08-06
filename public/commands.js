@@ -200,12 +200,17 @@ var SIGNATURE_MAX_CHARS = 30000;
 
 /**
  * Must match SIGNATURE_MARKER in taskpane.js. Whatever we insert here is what
- * the picker has to find and replace when someone corrects the sender.
+ * the picker has to find and replace when someone corrects the sender, and it
+ * carries both id and class because Outlook rewrites one or the other on its
+ * way into the message.
  */
 var SIGNATURE_MARKER = "bss-signature-block";
 
 function setSignature(html, item, event, isAuto) {
-  var wrapped = '<div id="' + SIGNATURE_MARKER + '">' + html + "</div>";
+  var wrapped =
+    '<div id="' + SIGNATURE_MARKER + '" class="' + SIGNATURE_MARKER + '">' +
+    html +
+    "</div>";
   var options = { coercionType: Office.CoercionType.Html };
 
   var done = function (result) {

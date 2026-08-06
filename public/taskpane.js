@@ -30,11 +30,42 @@ function hidePicker() {
 var SKIP_AUTH = false;
 
 /**
- * Everything we insert is wrapped in this id so a second visit can find the
- * previous signature and take it back out. Without it, picking again would
- * stack a second signature underneath the first.
+ * Everything we insert is wrapped in an element carrying this as both id and
+ * class, so a second visit can find the previous signature and take it out
+ * rather than stacking another one underneath.
+ *
+ * Both, because Outlook rewrites message HTML on the way through: Outlook on
+ * the web prefixes ids with "x_" (again on every round trip), and other clients
+ * drop id or class outright. Matching on either, by suffix, survives that.
  */
 var SIGNATURE_MARKER = "bss-signature-block";
+
+/**
+ * Every signature block we have previously inserted, outermost first. Returns
+ * more than one only if an earlier bug stacked them -- taking all of them out
+ * is what un-stacks an already-broken draft.
+ */
+function findSignatureBlocks(doc) {
+  var found = [];
+  var selectors = [
+    '[id$="' + SIGNATURE_MARKER + '"]',
+    '[class*="' + SIGNATURE_MARKER + '"]',
+  ];
+
+  selectors.forEach(function (selector) {
+    Array.prototype.forEach.call(doc.querySelectorAll(selector), function (el) {
+      if (found.indexOf(el) === -1) found.push(el);
+    });
+  });
+
+  // Drop anything nested inside another match; removing the outer one takes
+  // the inner with it.
+  return found.filter(function (el) {
+    return !found.some(function (other) {
+      return other !== el && other.contains(el);
+    });
+  });
+}
 
 /**
  * Read the sending address off the compose item. For a shared mailbox this is
@@ -244,16 +275,20 @@ function setBodyHtml(html) {
  */
 async function putSignature(html) {
   var doc = new DOMParser().parseFromString(await getBodyHtml(), "text/html");
-  var existing = doc.getElementById(SIGNATURE_MARKER);
 
-  if (existing) {
-    existing.innerHTML = html;
-  } else {
-    var block = doc.createElement("div");
-    block.id = SIGNATURE_MARKER;
-    block.innerHTML = html;
-    doc.body.appendChild(block);
-  }
+  // Take out every signature we have put in before, then add the new one at the
+  // end. Editing in place would keep whichever position the old one held, but
+  // it also means trusting that we found exactly one -- removing and appending
+  // gives the same result from a clean or an already-stacked draft.
+  findSignatureBlocks(doc).forEach(function (el) {
+    if (el.parentNode) el.parentNode.removeChild(el);
+  });
+
+  var block = doc.createElement("div");
+  block.id = SIGNATURE_MARKER;
+  block.className = SIGNATURE_MARKER;
+  block.innerHTML = html;
+  doc.body.appendChild(block);
 
   // Serialise the whole document, not doc.body.innerHTML: Outlook returns the
   // body wrapped in <html><head><style>, and dropping that head strips the
