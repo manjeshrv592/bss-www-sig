@@ -7,7 +7,7 @@
 
   <!-- Basic Settings -->
   <Id>f47ac10b-58cc-4372-a567-0e02b2c3d479</Id>
-  <Version>1.0.7.0</Version>
+  <Version>1.0.8.0</Version>
   <ProviderName>Blackstone Shipping</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="BSS Signature"/>
@@ -72,35 +72,6 @@
           <DesktopFormFactor>
             <FunctionFile resid="commandsUrl"/>
 
-            <!-- The taskpane button lives on the READ surface so the compose ribbon
-                 stays a single one-click control. It still exists in the manifest,
-                 which is what lets an actionable notification open the panel via
-                 commandId="btnTaskpane" when a sender can't be identified. -->
-            <ExtensionPoint xsi:type="MessageReadCommandSurface">
-              <OfficeTab id="TabDefault">
-                <Group id="bssSignatureReadGroup">
-                  <Label resid="groupLabel"/>
-
-                  <Control xsi:type="Button" id="btnTaskpane">
-                    <Label resid="taskpaneLabel"/>
-                    <Supertip>
-                      <Title resid="taskpaneLabel"/>
-                      <Description resid="taskpaneDesc"/>
-                    </Supertip>
-                    <Icon>
-                      <bt:Image size="16" resid="icon16"/>
-                      <bt:Image size="32" resid="icon32"/>
-                      <bt:Image size="80" resid="icon80"/>
-                    </Icon>
-                    <Action xsi:type="ShowTaskpane">
-                      <SourceLocation resid="taskpaneUrl"/>
-                    </Action>
-                  </Control>
-
-                </Group>
-              </OfficeTab>
-            </ExtensionPoint>
-
             <ExtensionPoint xsi:type="MessageComposeCommandSurface">
               <OfficeTab id="TabDefault">
                 <Group id="bssSignatureGroup">
@@ -117,8 +88,8 @@
                       <bt:Image size="32" resid="icon32"/>
                       <bt:Image size="80" resid="icon80"/>
                     </Icon>
-                    <Action xsi:type="ExecuteFunction">
-                      <FunctionName>insertSignature</FunctionName>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="taskpaneUrl"/>
                     </Action>
                   </Control>
 
@@ -150,11 +121,9 @@
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="groupLabel" DefaultValue="BSS Signature"/>
-          <bt:String id="taskpaneLabel" DefaultValue="Signature Panel"/>
           <bt:String id="insertLabel" DefaultValue="Insert Signature"/>
         </bt:ShortStrings>
         <bt:LongStrings>
-          <bt:String id="taskpaneDesc" DefaultValue="Preview your signature and choose a sender for shared mailboxes."/>
           <bt:String id="insertDesc" DefaultValue="Insert your BSS email signature"/>
         </bt:LongStrings>
       </Resources>

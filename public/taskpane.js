@@ -140,13 +140,15 @@ async function fetchSignature(selectedUserId) {
     document.getElementById("previewBody").innerHTML = cachedSignatureHtml;
     document.getElementById("previewSection").style.display = "block";
 
-    setStatus(
-      "success",
-      viaShared
-        ? "Signature loaded for " + appliedFor + " (sending from " + fromEmail + ")"
-        : "Signature loaded for " + appliedFor
-    );
     setButtonState(true);
+
+    // One click on the ribbon should end with the signature in the message.
+    // The Apply button stays for re-applying after an edit.
+    applySignature(
+      viaShared
+        ? "Signature applied for " + appliedFor + " (sending from " + fromEmail + ")"
+        : "Signature applied for " + appliedFor
+    );
   } catch (err) {
     console.error("Fetch signature error:", err);
     setStatus("error", err.message || "Unknown error occurred");
@@ -201,7 +203,7 @@ function renderPicker(payload) {
   setStatus("loading", "Select who is sending.");
 }
 
-function applySignature() {
+function applySignature(successMessage) {
   if (!cachedSignatureHtml) {
     setStatus("error", "No signature loaded. Click Refresh first.");
     return;
@@ -218,7 +220,7 @@ function applySignature() {
     { coercionType: Office.CoercionType.Html },
     function (asyncResult) {
       if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
-        setStatus("success", "Signature applied successfully!");
+        setStatus("success", successMessage || "Signature applied successfully!");
       } else {
         console.error("setSignatureAsync error:", asyncResult.error);
         setStatus("error", "Failed to apply: " + asyncResult.error.message);
