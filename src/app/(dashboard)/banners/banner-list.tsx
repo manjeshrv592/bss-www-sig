@@ -17,8 +17,22 @@ import {
   updateBanner,
   deleteBanner,
   moveBanner,
+  deleteBanners,
 } from "@/lib/actions/resources";
 import { useDragOrder } from "@/lib/use-drag-order";
+import { useUndoableDelete } from "@/lib/use-undoable-delete";
+import {
+  ResourceInUseDialog,
+  type InUseTarget,
+} from "@/components/resource-in-use-dialog";
+import { useRowSelection } from "@/lib/use-row-selection";
+import { BulkActionBar } from "@/components/bulk-action-bar";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AnimatedTableBody,
+  AnimatedTableRow,
+  UndoDeleteRow,
+} from "@/components/animated-table-row";
 import { OrderCell } from "@/components/order-cell";
 
 interface Banner {
@@ -39,10 +53,13 @@ function formatDate(d: Date | null) {
 }
 
 export function BannerList({
+  inUse,
   banners,
   offset,
   total,
 }: {
+  /** Resource id -> how many rules and overrides reference it. */
+  inUse: Record<string, { rules: number; overrides: number; total: number }>;
   banners: Banner[];
   offset: number;
   total: number;
@@ -59,6 +76,27 @@ export function BannerList({
     total,
     move: moveBanner,
   });
+
+  const {
+    isPendingDelete,
+    isPendingBatch,
+    batchCount,
+    durationMs,
+    requestDelete,
+    requestDeleteMany,
+    undo,
+    undoBatch,
+  } = useUndoableDelete({
+    onDeleteMany: deleteBanners,
+    onDelete: deleteBanner,
+  });
+
+  // Set when a delete is blocked, which opens the explaining dialog.
+  const [blocked, setBlocked] = useState<InUseTarget | null>(null);
+
+  const selection = useRowSelection(
+    items.filter((r) => !inUse[r.id]?.total).map((r) => r.id)
+  );
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -84,14 +122,6 @@ export function BannerList({
       setOpen(false);
       setEditItem(null);
       setClearDates(false);
-      router.refresh();
-    });
-  };
-
-  const handleDelete = (id: string) => {
-    if (!confirm("Delete this banner?")) return;
-    startTransition(async () => {
-      await deleteBanner(id);
       router.refresh();
     });
   };
@@ -219,6 +249,19 @@ export function BannerList({
         </Dialog>
       </div>
 
+      <BulkActionBar
+        count={selection.count}
+        batchCount={batchCount}
+        durationMs={durationMs}
+        noun="banner"
+        onDelete={() => {
+          requestDeleteMany(selection.ids);
+          selection.clear();
+        }}
+        onClear={selection.clear}
+        onUndo={undoBatch}
+      />
+
       {items.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -235,6 +278,13 @@ export function BannerList({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="w-10 px-4 py-3">
+                    <Checkbox
+                      checked={selection.headerState}
+                      onCheckedChange={selection.toggleAll}
+                      aria-label="Select all rows on this page"
+                    />
+                  </th>
                   <th className="w-16 px-4 py-3 font-medium">Order</th>
                   <th className="px-4 py-3 font-medium">Image</th>
                   <th className="px-4 py-3 font-medium">Name</th>
@@ -244,15 +294,33 @@ export function BannerList({
                   <th className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {items.map((banner, index) => (
-                  <tr
+              <AnimatedTableBody>
+                {items.map((banner, index) =>
+                  isPendingDelete(banner.id) ? (
+                    isPendingBatch(banner.id) ? null : (
+                    <UndoDeleteRow
+                      key={banner.id}
+                      colSpan={8}
+                      durationMs={durationMs}
+                      onUndo={() => undo(banner.id)}
+                    />
+                    )
+                  ) : (
+                  <AnimatedTableRow
                     key={banner.id}
                     {...getRowProps(index)}
                     className={`border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors ${
                       !banner.isActive ? "opacity-50" : ""
                     } ${rowStateClass(index)}`}
                   >
+                    <td className="px-4 py-3">
+                      <Checkbox
+                        checked={selection.isSelected(banner.id)}
+                        onCheckedChange={() => selection.toggle(banner.id)}
+                        disabled={Boolean(inUse[banner.id]?.total)}
+                        aria-label="Select row"
+                      />
+                    </td>
                     <OrderCell
                       index={offset + index}
                       total={total}
@@ -306,18 +374,31 @@ export function BannerList({
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditItem(banner); setOpen(true); }}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(banner.id)} disabled={isPending}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => {
+                            const usage = inUse[banner.id];
+                            if (usage?.total) {
+                              setBlocked({ id: banner.id, name: banner.name, ...usage });
+                            } else {
+                              requestDelete(banner.id);
+                            }
+                          }} disabled={isPending}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </td>
-                  </tr>
-                ))}
-              </tbody>
+                  </AnimatedTableRow>
+                  )
+                )}
+              </AnimatedTableBody>
             </table>
           </CardContent>
         </Card>
       )}
+      <ResourceInUseDialog
+        target={blocked}
+        resourceType="banner"
+        onClose={() => setBlocked(null)}
+      />
     </>
   );
 }

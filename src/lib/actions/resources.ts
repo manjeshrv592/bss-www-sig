@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { revalidatePath } from "next/cache";
 import { movedOrder } from "@/lib/order";
+import { assertResourceUnused, assertManyUnused } from "@/lib/resource-usage";
 
 // ─── Certifications ────────────────────────────
 
@@ -66,6 +67,8 @@ export async function updateCertification(
 }
 
 export async function deleteCertification(id: string) {
+  const existing = await prisma.certification.findUniqueOrThrow({ where: { id } });
+  await assertResourceUnused("certification", id, existing.name);
   const cert = await prisma.certification.delete({ where: { id } });
   await logActivity({
     action: `Deleted certification "${cert.name}"`,
@@ -153,6 +156,8 @@ export async function updateBanner(
 }
 
 export async function deleteBanner(id: string) {
+  const existing = await prisma.banner.findUniqueOrThrow({ where: { id } });
+  await assertResourceUnused("banner", id, existing.name);
   const banner = await prisma.banner.delete({ where: { id } });
   await logActivity({
     action: `Deleted banner "${banner.name}"`,
@@ -216,6 +221,8 @@ export async function updateDisclaimer(
 }
 
 export async function deleteDisclaimer(id: string) {
+  const existing = await prisma.disclaimer.findUniqueOrThrow({ where: { id } });
+  await assertResourceUnused("disclaimer", id, existing.name);
   const text = await prisma.disclaimer.delete({ where: { id } });
   await logActivity({
     action: `Deleted disclaimer "${text.name}"`,
@@ -260,14 +267,9 @@ export async function updateRegistrationLine(
 }
 
 export async function deleteRegistrationLine(id: string) {
+  const existing = await prisma.registrationLine.findUniqueOrThrow({ where: { id } });
+  await assertResourceUnused("registration_line", id, existing.name);
   const removed = await prisma.registrationLine.delete({ where: { id } });
-  // Assignments reference resources by loose id, so clean up by hand.
-  await prisma.assignment.deleteMany({
-    where: { resourceType: "registration_line", resourceId: id },
-  });
-  await prisma.userOverride.deleteMany({
-    where: { resourceType: "registration_line", resourceId: id },
-  });
   await logActivity({
     action: `Deleted registration line "${removed.name}"`,
     entity: "registration_line",
@@ -308,13 +310,9 @@ export async function updateFooterLine(
 }
 
 export async function deleteFooterLine(id: string) {
+  const existing = await prisma.footerLine.findUniqueOrThrow({ where: { id } });
+  await assertResourceUnused("footer_line", id, existing.name);
   const line = await prisma.footerLine.delete({ where: { id } });
-  await prisma.assignment.deleteMany({
-    where: { resourceType: "footer_line", resourceId: id },
-  });
-  await prisma.userOverride.deleteMany({
-    where: { resourceType: "footer_line", resourceId: id },
-  });
   await logActivity({
     action: `Deleted footer line "${line.name}"`,
     entity: "footer_line",
@@ -376,4 +374,35 @@ export async function moveDisclaimer(id: string, toIndex: number) {
   );
   await logActivity({ action: `Reordered disclaimers`, entity: "disclaimer" });
   revalidatePath("/disclaimers");
+}
+
+// ─── Bulk delete ───────────────────────────────────────
+//
+// One request per bulk action rather than one per row. Each wrapper delegates
+// to the single-item action so the cleanup it performs — removing dependent
+// assignments and overrides, writing the activity entry — stays defined once.
+
+export async function deleteCertifications(ids: string[]) {
+  await assertManyUnused("certification", ids);
+  for (const id of ids) await deleteCertification(id);
+}
+
+export async function deleteBanners(ids: string[]) {
+  await assertManyUnused("banner", ids);
+  for (const id of ids) await deleteBanner(id);
+}
+
+export async function deleteDisclaimers(ids: string[]) {
+  await assertManyUnused("disclaimer", ids);
+  for (const id of ids) await deleteDisclaimer(id);
+}
+
+export async function deleteRegistrationLines(ids: string[]) {
+  await assertManyUnused("registration_line", ids);
+  for (const id of ids) await deleteRegistrationLine(id);
+}
+
+export async function deleteFooterLines(ids: string[]) {
+  await assertManyUnused("footer_line", ids);
+  for (const id of ids) await deleteFooterLine(id);
 }

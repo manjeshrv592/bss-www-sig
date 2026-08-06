@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Users, Award, RefreshCw, ArrowRight, Activity, Link2, Info } from "lucide-react";
 import { LocaleDate, LocaleDatetime } from "@/components/locale-date";
+import { CountUp } from "@/components/count-up";
 import {
   CategoryBarChart,
   ActivityAreaChart,
@@ -131,7 +132,7 @@ export default async function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{userCount}</p>
+            <p className="text-3xl font-bold"><CountUp value={userCount} /></p>
             <p className="text-xs text-muted-foreground">{groupCount} groups synced</p>
           </CardContent>
         </Card>
@@ -141,7 +142,7 @@ export default async function DashboardPage() {
             <Award className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{resourceCount}</p>
+            <p className="text-3xl font-bold"><CountUp value={resourceCount} /></p>
             <p className="text-xs text-muted-foreground">
               {certCount} certs · {bannerCount} banners · {disclaimerCount} disclaimers
             </p>
@@ -153,7 +154,7 @@ export default async function DashboardPage() {
             <Link2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{assignmentCount}</p>
+            <p className="text-3xl font-bold"><CountUp value={assignmentCount} /></p>
             <p className="text-xs text-muted-foreground">
               across {assignmentsByScope.length} scope
               {assignmentsByScope.length === 1 ? "" : "s"}

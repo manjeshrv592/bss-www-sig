@@ -16,7 +16,22 @@ import {
   createFooterLine,
   updateFooterLine,
   deleteFooterLine,
+  deleteFooterLines,
 } from "@/lib/actions/resources";
+import { TruncatedText } from "@/components/truncated-text";
+import { useUndoableDelete } from "@/lib/use-undoable-delete";
+import {
+  ResourceInUseDialog,
+  type InUseTarget,
+} from "@/components/resource-in-use-dialog";
+import { useRowSelection } from "@/lib/use-row-selection";
+import { BulkActionBar } from "@/components/bulk-action-bar";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AnimatedTableBody,
+  AnimatedTableRow,
+  UndoDeleteRow,
+} from "@/components/animated-table-row";
 
 interface FooterLine {
   id: string;
@@ -27,11 +42,39 @@ interface FooterLine {
   createdAt: Date;
 }
 
-export function FooterLineList({ lines }: { lines: FooterLine[] }) {
+export function FooterLineList({
+  lines,
+  inUse,
+}: {
+  lines: FooterLine[];
+  /** Resource id -> how many rules and overrides reference it. */
+  inUse: Record<string, { rules: number; overrides: number; total: number }>;
+}) {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<FooterLine | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  const {
+    isPendingDelete,
+    isPendingBatch,
+    batchCount,
+    durationMs,
+    requestDelete,
+    requestDeleteMany,
+    undo,
+    undoBatch,
+  } = useUndoableDelete({
+    onDelete: deleteFooterLine,
+    onDeleteMany: deleteFooterLines,
+  });
+
+  // Set when a delete is blocked, which opens the explaining dialog.
+  const [blocked, setBlocked] = useState<InUseTarget | null>(null);
+
+  const selection = useRowSelection(
+    lines.filter((r) => !inUse[r.id]?.total).map((r) => r.id)
+  );
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -49,14 +92,6 @@ export function FooterLineList({ lines }: { lines: FooterLine[] }) {
       }
       setOpen(false);
       setEditItem(null);
-      router.refresh();
-    });
-  };
-
-  const handleDelete = (id: string) => {
-    if (!confirm("Delete this footer line? Any rules using it are removed too.")) return;
-    startTransition(async () => {
-      await deleteFooterLine(id);
       router.refresh();
     });
   };
@@ -159,6 +194,19 @@ export function FooterLineList({ lines }: { lines: FooterLine[] }) {
         </Dialog>
       </div>
 
+      <BulkActionBar
+        count={selection.count}
+        batchCount={batchCount}
+        durationMs={durationMs}
+        noun="footer line"
+        onDelete={() => {
+          requestDeleteMany(selection.ids);
+          selection.clear();
+        }}
+        onClear={selection.clear}
+        onUndo={undoBatch}
+      />
+
       {lines.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -175,6 +223,13 @@ export function FooterLineList({ lines }: { lines: FooterLine[] }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="w-10 px-4 py-3">
+                    <Checkbox
+                      checked={selection.headerState}
+                      onCheckedChange={selection.toggleAll}
+                      aria-label="Select all rows"
+                    />
+                  </th>
                   <th className="px-4 py-3 font-medium">Title</th>
                   <th className="px-4 py-3 font-medium">Left</th>
                   <th className="px-4 py-3 font-medium">Right</th>
@@ -182,15 +237,35 @@ export function FooterLineList({ lines }: { lines: FooterLine[] }) {
                   <th className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {lines.map((line) => (
-                  <tr
+              <AnimatedTableBody>
+                {lines.map((line) =>
+                  isPendingDelete(line.id) ? (
+                    isPendingBatch(line.id) ? null : (
+                    <UndoDeleteRow
+                      key={line.id}
+                      colSpan={6}
+                      durationMs={durationMs}
+                      onUndo={() => undo(line.id)}
+                    />
+                    )
+                  ) : (
+                  <AnimatedTableRow
                     key={line.id}
                     className={`border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors ${
                       !line.isActive ? "opacity-50" : ""
                     }`}
                   >
-                    <td className="px-4 py-3 font-medium whitespace-nowrap">{line.name}</td>
+                    <td className="px-4 py-2">
+                      <Checkbox
+                        checked={selection.isSelected(line.id)}
+                        onCheckedChange={() => selection.toggle(line.id)}
+                        disabled={Boolean(inUse[line.id]?.total)}
+                        aria-label="Select row"
+                      />
+                    </td>
+                    <td className="px-4 py-3 font-medium">
+                      <TruncatedText maxWidth="14rem">{line.name}</TruncatedText>
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">{line.leftText}</td>
                     <td className="px-4 py-3 text-muted-foreground">{line.rightText}</td>
                     <td className="px-4 py-3">
@@ -230,20 +305,33 @@ export function FooterLineList({ lines }: { lines: FooterLine[] }) {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-destructive"
-                          onClick={() => handleDelete(line.id)}
+                          onClick={() => {
+                            const usage = inUse[line.id];
+                            if (usage?.total) {
+                              setBlocked({ id: line.id, name: line.name, ...usage });
+                            } else {
+                              requestDelete(line.id);
+                            }
+                          }}
                           disabled={isPending}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </td>
-                  </tr>
-                ))}
-              </tbody>
+                  </AnimatedTableRow>
+                  )
+                )}
+              </AnimatedTableBody>
             </table>
           </CardContent>
         </Card>
       )}
+      <ResourceInUseDialog
+        target={blocked}
+        resourceType="footer_line"
+        onClose={() => setBlocked(null)}
+      />
     </>
   );
 }

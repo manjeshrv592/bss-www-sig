@@ -100,3 +100,11 @@ export async function setUserOverride(data: {
 export async function clearUserOverride(msUserId: string) {
   await setUserOverride({ msUserId, resources: [] });
 }
+
+/**
+ * Remove several assignments in one request. Delegates to the single-item
+ * action so its logging and revalidation stay defined once.
+ */
+export async function deleteAssignments(ids: string[]) {
+  for (const id of ids) await deleteAssignment(id);
+}
