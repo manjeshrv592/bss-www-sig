@@ -188,34 +188,38 @@ function continueWithEmail(userEmail, token, item, event, isAuto) {
   });
 }
 
+/**
+ * setSignatureAsync fills the signature area without moving the cursor, but
+ * Office caps its `data` at 30,000 characters and classic Outlook throws
+ * Sys.ArgumentOutOfRangeException past that instead of failing through the
+ * callback. Signatures carrying base64 images run well over it, so above the
+ * cap we insert at the cursor, which allows a megabyte. On the fresh compose
+ * this runs against, that is the same place.
+ */
+var SIGNATURE_MAX_CHARS = 30000;
+
 function setSignature(html, item, event, isAuto) {
-  if (isAuto) {
-    item.body.setSignatureAsync(
-      html,
-      { coercionType: Office.CoercionType.Html },
-      function (result) {
-        if (result.status === Office.AsyncResultStatus.Succeeded) {
-          console.log("Signature set successfully (auto)");
-        } else {
-          console.error("setSignatureAsync error:", result.error.message);
-        }
-        if (event) event.completed();
-      }
-    );
-  } else {
-    item.body.setSelectedDataAsync(
-      html,
-      { coercionType: Office.CoercionType.Html },
-      function (result) {
-        if (result.status === Office.AsyncResultStatus.Succeeded) {
-          console.log("Signature set successfully (manual)");
-        } else {
-          console.error("setSelectedDataAsync error:", result.error.message);
-        }
-        if (event) event.completed();
-      }
-    );
+  var options = { coercionType: Office.CoercionType.Html };
+
+  var done = function (result) {
+    if (result.status === Office.AsyncResultStatus.Succeeded) {
+      console.log("Signature set successfully");
+    } else {
+      console.error("Signature insert error:", result.error && result.error.message);
+    }
+    if (event) event.completed();
+  };
+
+  if (isAuto && html.length <= SIGNATURE_MAX_CHARS) {
+    try {
+      item.body.setSignatureAsync(html, options, done);
+      return;
+    } catch (e) {
+      console.log("setSignatureAsync threw, falling back to cursor insert:", e);
+    }
   }
+
+  item.body.setSelectedDataAsync(html, options, done);
 }
 
 function autoInsertSignature(event) {
