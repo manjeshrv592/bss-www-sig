@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, Mailbox, UserPlus, X, Lightbulb } from "lucide-react";
+import { Plus, Trash2, Loader2, Mailbox, UserPlus, X, Lightbulb, ShieldCheck, KeyRound, AlertTriangle } from "lucide-react";
 import {
   setSharedMailbox,
   markSharedMailboxes,
@@ -33,6 +33,8 @@ interface Person {
 }
 
 interface MailboxRow extends Person {
+  /** True when Microsoft has blocked sign-in — a real shared mailbox. */
+  signInBlocked: boolean;
   members: Person[];
 }
 
@@ -213,9 +215,22 @@ export function SharedMailboxManager({
                       <Mailbox className="h-4 w-4 text-muted-foreground" />
                       {mb.email}
                     </CardTitle>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Auto-insert is skipped for this address unless the signed-in
-                      user can be identified.
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      {mb.signInBlocked ? (
+                        <>
+                          <ShieldCheck className="h-3.5 w-3.5 text-green-600" />
+                          Microsoft shared mailbox — sign-in is blocked, so the
+                          sender is always known and their signature applies
+                          automatically.
+                        </>
+                      ) : (
+                        <>
+                          <KeyRound className="h-3.5 w-3.5 text-amber-600" />
+                          Sign-in is enabled, so anyone signed in as this address
+                          looks the same to Microsoft. Nothing is inserted
+                          automatically — the sender picks from the list below.
+                        </>
+                      )}
                     </p>
                   </div>
                   <Button
@@ -235,12 +250,24 @@ export function SharedMailboxManager({
                 <CardContent className="space-y-3">
                   <div>
                     <p className="text-xs font-medium mb-2">
-                      Fallback picker members ({mb.members.length})
+                      {mb.signInBlocked ? "Fallback picker members" : "People who use this address"} ({mb.members.length})
                     </p>
                     {mb.members.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">
-                        None yet. Without members, anyone who can&apos;t be
-                        identified automatically gets no signature to choose from.
+                      <p
+                        className={
+                          mb.signInBlocked
+                            ? "text-xs text-muted-foreground"
+                            : "flex items-start gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-2 text-xs text-amber-700 dark:text-amber-500"
+                        }
+                      >
+                        {!mb.signInBlocked && (
+                          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        )}
+                        <span>
+                          {mb.signInBlocked
+                            ? "None yet. Only needed as a fallback if a sender can't be identified automatically."
+                            : "No members yet — the picker has nobody to offer, so nobody sending from this address can get a signature. Add everyone who uses it."}
+                        </span>
                       </p>
                     ) : (
                       <div className="flex flex-wrap gap-2">

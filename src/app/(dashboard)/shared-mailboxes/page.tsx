@@ -9,6 +9,7 @@ export default async function SharedMailboxesPage() {
         id: true,
         email: true,
         displayName: true,
+        accountEnabled: true,
         sharedMailboxMembers: {
           select: {
             msUser: {
@@ -68,6 +69,11 @@ export default async function SharedMailboxesPage() {
           id: m.id,
           email: m.email,
           name: m.displayName ?? m.email,
+          // Microsoft blocks sign-in on a real shared mailbox, so it can never
+          // hold a token of its own and the sender is always identifiable.
+          // An enabled account means someone can sign in AS it — the
+          // password-shared case, where the sender has to be chosen by hand.
+          signInBlocked: !m.accountEnabled,
           members: m.sharedMailboxMembers
             .map((sm) => ({
               id: sm.msUser.id,
