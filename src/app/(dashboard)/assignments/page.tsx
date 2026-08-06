@@ -1,7 +1,34 @@
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
 import { AssignmentManager } from "./assignment-manager";
+import { Button } from "@/components/ui/button";
+import { Filter, X } from "lucide-react";
 
-export default async function AssignmentsPage() {
+/**
+ * Optionally narrowed to one resource, which is how the resource lists link
+ * here when something can't be deleted because it is still assigned.
+ */
+export default async function AssignmentsPage(props: {
+  searchParams: Promise<{ resourceType?: string; resourceId?: string }>;
+}) {
+  const { resourceType, resourceId } = await props.searchParams;
+  const filtering = Boolean(resourceType && resourceId);
+  const filter = filtering ? { resourceType, resourceId } : {};
+
+  // Only to label the filter banner; the lists below already carry the names.
+  const filteredName = filtering
+    ? (
+        await (resourceType === "certification"
+          ? prisma.certification.findUnique({ where: { id: resourceId! }, select: { name: true } })
+          : resourceType === "banner"
+            ? prisma.banner.findUnique({ where: { id: resourceId! }, select: { name: true } })
+            : resourceType === "disclaimer"
+              ? prisma.disclaimer.findUnique({ where: { id: resourceId! }, select: { name: true } })
+              : resourceType === "registration_line"
+                ? prisma.registrationLine.findUnique({ where: { id: resourceId! }, select: { name: true } })
+                : prisma.footerLine.findUnique({ where: { id: resourceId! }, select: { name: true } }))
+      )?.name ?? "this resource"
+    : null;
   const [
     assignments,
     certifications,
@@ -15,7 +42,7 @@ export default async function AssignmentsPage() {
     jobTitles,
     groups,
   ] = await Promise.all([
-      prisma.assignment.findMany({ orderBy: { createdAt: "desc" } }),
+      prisma.assignment.findMany({ where: filter, orderBy: { createdAt: "desc" } }),
       prisma.certification.findMany({
         where: { isActive: true },
         select: { id: true, name: true },
@@ -88,6 +115,25 @@ export default async function AssignmentsPage() {
           Assign resources to users by scope. Rules use OR logic with deduplication.
         </p>
       </div>
+
+      {filtering && (
+        <div className="flex items-center justify-between gap-3 rounded-xl bg-card px-4 py-2.5 shadow-soft-sm">
+          <span className="flex items-center gap-2 text-sm">
+            <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+            Showing only rules that use{" "}
+            <span className="font-medium">{filteredName}</span>
+            <span className="text-muted-foreground">
+              ({assignments.length} rule{assignments.length === 1 ? "" : "s"})
+            </span>
+          </span>
+          <Link href="/assignments">
+            <Button variant="ghost" size="sm" className="gap-1.5">
+              <X className="h-3 w-3" />
+              Show all
+            </Button>
+          </Link>
+        </div>
+      )}
 
       <AssignmentManager
         assignments={assignments}

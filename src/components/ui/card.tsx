@@ -13,10 +13,8 @@ function Card({
       data-size={size}
       className={cn(
         // Soft UI surface: a barely-there vertical gradient plus a diffused
-        // shadow, in place of the flat fill and hard 1px ring. The ring is kept
-        // at a much lower opacity so the card still has a defined edge in dark
-        // mode, where the shadow alone does almost nothing.
-        "group/card flex flex-col gap-4 overflow-hidden rounded-xl bg-card bg-gradient-surface py-4 text-sm text-card-foreground shadow-soft-md ring-1 ring-foreground/5 has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        // shadow, with no border — depth comes from the shadow alone.
+                "group/card flex flex-col gap-4 overflow-hidden rounded-xl bg-card bg-gradient-surface py-4 text-sm text-card-foreground shadow-soft-md has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
         className
       )}
       {...props}

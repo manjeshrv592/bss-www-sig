@@ -17,10 +17,18 @@ import {
   updateDisclaimer,
   deleteDisclaimer,
   moveDisclaimer,
+  deleteDisclaimers,
 } from "@/lib/actions/resources";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { useUndoableDelete } from "@/lib/use-undoable-delete";
+import {
+  ResourceInUseDialog,
+  type InUseTarget,
+} from "@/components/resource-in-use-dialog";
+import { useRowSelection } from "@/lib/use-row-selection";
+import { BulkActionBar } from "@/components/bulk-action-bar";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AnimatedTableBody,
   AnimatedTableRow,
@@ -37,10 +45,13 @@ interface Disclaimer {
 }
 
 export function DisclaimerList({
+  inUse,
   disclaimers,
   offset,
   total,
 }: {
+  /** Resource id -> how many rules and overrides reference it. */
+  inUse: Record<string, { rules: number; overrides: number; total: number }>;
   disclaimers: Disclaimer[];
   offset: number;
   total: number;
@@ -58,8 +69,26 @@ export function DisclaimerList({
     move: moveDisclaimer,
   });
 
-  const { isPendingDelete, secondsLeft, progress, requestDelete, undo } =
-    useUndoableDelete({ onDelete: deleteDisclaimer });
+  const {
+    isPendingDelete,
+    isPendingBatch,
+    batchCount,
+    durationMs,
+    requestDelete,
+    requestDeleteMany,
+    undo,
+    undoBatch,
+  } = useUndoableDelete({
+    onDeleteMany: deleteDisclaimers,
+    onDelete: deleteDisclaimer,
+  });
+
+  // Set when a delete is blocked, which opens the explaining dialog.
+  const [blocked, setBlocked] = useState<InUseTarget | null>(null);
+
+  const selection = useRowSelection(
+    items.filter((r) => !inUse[r.id]?.total).map((r) => r.id)
+  );
 
   const openCreate = () => {
     setEditItem(null);
@@ -153,6 +182,19 @@ export function DisclaimerList({
         </Dialog>
       </div>
 
+      <BulkActionBar
+        count={selection.count}
+        batchCount={batchCount}
+        durationMs={durationMs}
+        noun="disclaimer"
+        onDelete={() => {
+          requestDeleteMany(selection.ids);
+          selection.clear();
+        }}
+        onClear={selection.clear}
+        onUndo={undoBatch}
+      />
+
       {items.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -169,6 +211,13 @@ export function DisclaimerList({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="w-10 px-4 py-3">
+                    <Checkbox
+                      checked={selection.headerState}
+                      onCheckedChange={selection.toggleAll}
+                      aria-label="Select all rows on this page"
+                    />
+                  </th>
                   <th className="w-16 px-4 py-3 font-medium">Order</th>
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Preview</th>
@@ -179,14 +228,14 @@ export function DisclaimerList({
               <AnimatedTableBody>
                 {items.map((item, index) =>
                   isPendingDelete(item.id) ? (
+                    isPendingBatch(item.id) ? null : (
                     <UndoDeleteRow
                       key={item.id}
-                      colSpan={5}
-                      label={item.name}
-                      secondsLeft={secondsLeft(item.id)}
-                      progress={progress(item.id)}
+                      colSpan={6}
+                      durationMs={durationMs}
                       onUndo={() => undo(item.id)}
                     />
+                    )
                   ) : (
                   <AnimatedTableRow
                     key={item.id}
@@ -195,6 +244,14 @@ export function DisclaimerList({
                       !item.isActive ? "opacity-50" : ""
                     } ${rowStateClass(index)}`}
                   >
+                    <td className="px-4 py-3">
+                      <Checkbox
+                        checked={selection.isSelected(item.id)}
+                        onCheckedChange={() => selection.toggle(item.id)}
+                        disabled={Boolean(inUse[item.id]?.total)}
+                        aria-label="Select row"
+                      />
+                    </td>
                     <OrderCell
                       index={offset + index}
                       total={total}
@@ -225,7 +282,14 @@ export function DisclaimerList({
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(item)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => requestDelete(item.id)} disabled={isPending}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => {
+                            const usage = inUse[item.id];
+                            if (usage?.total) {
+                              setBlocked({ id: item.id, name: item.name, ...usage });
+                            } else {
+                              requestDelete(item.id);
+                            }
+                          }} disabled={isPending}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
@@ -238,6 +302,11 @@ export function DisclaimerList({
           </CardContent>
         </Card>
       )}
+      <ResourceInUseDialog
+        target={blocked}
+        resourceType="disclaimer"
+        onClose={() => setBlocked(null)}
+      />
     </>
   );
 }

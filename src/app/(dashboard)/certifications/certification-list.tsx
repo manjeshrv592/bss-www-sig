@@ -17,9 +17,17 @@ import {
   updateCertification,
   deleteCertification,
   moveCertification,
+  deleteCertifications,
 } from "@/lib/actions/resources";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { useUndoableDelete } from "@/lib/use-undoable-delete";
+import {
+  ResourceInUseDialog,
+  type InUseTarget,
+} from "@/components/resource-in-use-dialog";
+import { useRowSelection } from "@/lib/use-row-selection";
+import { BulkActionBar } from "@/components/bulk-action-bar";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AnimatedTableBody,
   AnimatedTableRow,
@@ -37,10 +45,13 @@ interface Certification {
 }
 
 export function CertificationList({
+  inUse,
   certifications,
   offset,
   total,
 }: {
+  /** Resource id -> how many rules and overrides reference it. */
+  inUse: Record<string, { rules: number; overrides: number; total: number }>;
   certifications: Certification[];
   offset: number;
   total: number;
@@ -57,8 +68,26 @@ export function CertificationList({
     move: moveCertification,
   });
 
-  const { isPendingDelete, secondsLeft, progress, requestDelete, undo } =
-    useUndoableDelete({ onDelete: deleteCertification });
+  const {
+    isPendingDelete,
+    isPendingBatch,
+    batchCount,
+    durationMs,
+    requestDelete,
+    requestDeleteMany,
+    undo,
+    undoBatch,
+  } = useUndoableDelete({
+    onDeleteMany: deleteCertifications,
+    onDelete: deleteCertification,
+  });
+
+  // Set when a delete is blocked, which opens the explaining dialog.
+  const [blocked, setBlocked] = useState<InUseTarget | null>(null);
+
+  const selection = useRowSelection(
+    items.filter((r) => !inUse[r.id]?.total).map((r) => r.id)
+  );
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -159,6 +188,19 @@ export function CertificationList({
         </Dialog>
       </div>
 
+      <BulkActionBar
+        count={selection.count}
+        batchCount={batchCount}
+        durationMs={durationMs}
+        noun="certification"
+        onDelete={() => {
+          requestDeleteMany(selection.ids);
+          selection.clear();
+        }}
+        onClear={selection.clear}
+        onUndo={undoBatch}
+      />
+
       {items.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -175,6 +217,13 @@ export function CertificationList({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="w-10 px-4 py-3">
+                    <Checkbox
+                      checked={selection.headerState}
+                      onCheckedChange={selection.toggleAll}
+                      aria-label="Select all rows on this page"
+                    />
+                  </th>
                   <th className="w-16 px-4 py-3 font-medium">Order</th>
                   <th className="px-4 py-3 font-medium">Image</th>
                   <th className="px-4 py-3 font-medium">Name</th>
@@ -186,14 +235,14 @@ export function CertificationList({
               <AnimatedTableBody>
                 {items.map((cert, index) =>
                   isPendingDelete(cert.id) ? (
+                    isPendingBatch(cert.id) ? null : (
                     <UndoDeleteRow
                       key={cert.id}
-                      colSpan={6}
-                      label={cert.name}
-                      secondsLeft={secondsLeft(cert.id)}
-                      progress={progress(cert.id)}
+                      colSpan={7}
+                      durationMs={durationMs}
                       onUndo={() => undo(cert.id)}
                     />
+                    )
                   ) : (
                   <AnimatedTableRow
                     key={cert.id}
@@ -202,6 +251,14 @@ export function CertificationList({
                       !cert.isActive ? "opacity-50" : ""
                     } ${rowStateClass(index)}`}
                   >
+                    <td className="px-4 py-3">
+                      <Checkbox
+                        checked={selection.isSelected(cert.id)}
+                        onCheckedChange={() => selection.toggle(cert.id)}
+                        disabled={Boolean(inUse[cert.id]?.total)}
+                        aria-label="Select row"
+                      />
+                    </td>
                     <OrderCell
                       index={offset + index}
                       total={total}
@@ -234,7 +291,14 @@ export function CertificationList({
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditItem(cert); setOpen(true); }}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => requestDelete(cert.id)} disabled={isPending}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => {
+                            const usage = inUse[cert.id];
+                            if (usage?.total) {
+                              setBlocked({ id: cert.id, name: cert.name, ...usage });
+                            } else {
+                              requestDelete(cert.id);
+                            }
+                          }} disabled={isPending}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
@@ -247,6 +311,11 @@ export function CertificationList({
           </CardContent>
         </Card>
       )}
+      <ResourceInUseDialog
+        target={blocked}
+        resourceType="certification"
+        onClose={() => setBlocked(null)}
+      />
     </>
   );
 }

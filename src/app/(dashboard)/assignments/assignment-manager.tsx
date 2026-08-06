@@ -13,8 +13,15 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Loader2, Globe, MapPin, Map, Building2, Briefcase, Users } from "lucide-react";
-import { createAssignment, deleteAssignment } from "@/lib/actions/assignments";
+import {
+  createAssignment,
+  deleteAssignment,
+  deleteAssignments,
+} from "@/lib/actions/assignments";
 import { useUndoableDelete } from "@/lib/use-undoable-delete";
+import { useRowSelection } from "@/lib/use-row-selection";
+import { BulkActionBar } from "@/components/bulk-action-bar";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AnimatedTableBody,
   AnimatedTableRow,
@@ -106,8 +113,21 @@ export function AssignmentManager({
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const { isPendingDelete, secondsLeft, progress, requestDelete, undo } =
-    useUndoableDelete({ onDelete: deleteAssignment });
+  const {
+    isPendingDelete,
+    isPendingBatch,
+    batchCount,
+    durationMs,
+    requestDelete,
+    requestDeleteMany,
+    undo,
+    undoBatch,
+  } = useUndoableDelete({
+    onDelete: deleteAssignment,
+    onDeleteMany: deleteAssignments,
+  });
+
+  const selection = useRowSelection(assignments.map((r) => r.id));
 
   const RESOURCE_LISTS: Record<string, Resource[]> = {
     certification: certifications,
@@ -332,6 +352,19 @@ export function AssignmentManager({
         </Dialog>
       </div>
 
+      <BulkActionBar
+        count={selection.count}
+        batchCount={batchCount}
+        durationMs={durationMs}
+        noun="rule"
+        onDelete={() => {
+          requestDeleteMany(selection.ids);
+          selection.clear();
+        }}
+        onClear={selection.clear}
+        onUndo={undoBatch}
+      />
+
       {Object.keys(grouped).length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -366,6 +399,15 @@ export function AssignmentManager({
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="w-10 px-4 py-3">
+                    <Checkbox
+                      checked={selection.stateFor(group.items.map((i) => i.id))}
+                      onCheckedChange={() =>
+                        selection.toggleMany(group.items.map((i) => i.id))
+                      }
+                      aria-label={`Select all ${label} rules`}
+                    />
+                  </th>
                         <th className="px-4 py-2 font-medium">Type</th>
                         <th className="px-4 py-2 font-medium">Resource</th>
                         <th className="px-4 py-2 font-medium text-right">Actions</th>
@@ -374,19 +416,26 @@ export function AssignmentManager({
                     <AnimatedTableBody>
                       {group.items.map((a) =>
                         isPendingDelete(a.id) ? (
+                    isPendingBatch(a.id) ? null : (
                     <UndoDeleteRow
                       key={a.id}
-                      colSpan={3}
-                      label={getResourceName(a.resourceType, a.resourceId)}
-                      secondsLeft={secondsLeft(a.id)}
-                      progress={progress(a.id)}
+                      colSpan={4}
+                      durationMs={durationMs}
                       onUndo={() => undo(a.id)}
                     />
+                    )
                   ) : (
                         <AnimatedTableRow
                           key={a.id}
                           className="border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors"
                         >
+                          <td className="px-4 py-2">
+                            <Checkbox
+                              checked={selection.isSelected(a.id)}
+                              onCheckedChange={() => selection.toggle(a.id)}
+                              aria-label="Select row"
+                            />
+                          </td>
                           <td className="px-4 py-2">
                             <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium">
                               {RESOURCE_LABELS[a.resourceType] ?? a.resourceType}

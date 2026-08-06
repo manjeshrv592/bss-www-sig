@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { DisclaimerList } from "./disclaimer-list";
 import { Pagination } from "@/components/pagination";
+import { getResourceUsage } from "@/lib/resource-usage";
 
 const PER_PAGE = 10;
 
@@ -20,6 +21,17 @@ export default async function Page(props: {
     take: PER_PAGE,
   });
 
+  // Rules and overrides reference resources by loose id, so a resource in use
+  // must not be deletable. Counted here so the list can say what is blocking
+  // the delete at click time, rather than after the undo window expires.
+  const usage = await getResourceUsage(
+    "disclaimer",
+    rows.map((r) => r.id)
+  );
+  // Passed as the full breakdown, not just a total: the blocked-delete dialog
+  // reports rules and overrides separately.
+  const inUse = Object.fromEntries(usage);
+
   return (
     <div className="space-y-6">
       <div>
@@ -30,7 +42,7 @@ export default async function Page(props: {
         </p>
       </div>
 
-      <DisclaimerList disclaimers={rows} offset={offset} total={total} />
+      <DisclaimerList disclaimers={rows} inUse={inUse} offset={offset} total={total} />
       <Pagination page={page} totalPages={totalPages} basePath="/disclaimers" />
     </div>
   );

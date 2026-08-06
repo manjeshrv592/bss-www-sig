@@ -14,6 +14,29 @@
   --animate-collapsible-up: collapsible-up 150ms ease-in;
 }
 
+/* Undo panel. Driven by CSS, not motion: these sit inside an AnimatePresence
+   with initial={false} — which stops existing rows animating in on page load —
+   and a motion child inheriting that renders straight at its animate state, so
+   the bar mounted at zero width and the panel never slid. CSS is unaffected. */
+@keyframes undo-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes undo-drain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -191,12 +214,14 @@
   html {
     @apply font-sans;
   }
-  /* Respect a user's reduced-motion preference for every animation added for
-     the soft-UI pass — micro-interactions are decoration, not information. */
+  /* Respect a user's reduced-motion preference: the soft-UI micro-interactions
+     are decoration. The exception is anything marked data-motion-essential —
+     the undo countdown bar is the only indicator of how long is left, so
+     collapsing it to nothing would remove information, not motion. */
   @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
+    *:not([data-motion-essential]),
+    *:not([data-motion-essential])::before,
+    *:not([data-motion-essential])::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;

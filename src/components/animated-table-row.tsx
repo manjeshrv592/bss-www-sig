@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Trash2 } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 
 /**
  * Table body whose rows animate out when removed. Wraps `AnimatePresence` so
@@ -73,62 +73,58 @@ export function AnimatedTableRow({
 }
 
 /**
- * Replaces a row while its delete is pending: the item's name, a countdown and
- * an Undo button, in the row's own place. The offer sits where the user just
- * clicked instead of in a corner of the screen.
+ * Covers a row whose delete is pending. A panel slides in from the right over
+ * the row's own space, carrying nothing but Undo, sat where the delete button
+ * was. The draining bar is the only time cue — a number would say the same
+ * thing twice.
  *
- * `colSpan` must match the table's column count or the row will not fill it.
+ * `colSpan` must match the table's column count or the panel won't span it.
  */
 export function UndoDeleteRow({
   colSpan,
-  label,
-  secondsLeft,
-  progress,
+  durationMs,
   onUndo,
 }: {
   colSpan: number;
-  label: string;
-  secondsLeft: number;
-  /** 1 → 0 as the window closes. */
-  progress: number;
+  /** Length of the undo window; how long the bar takes to drain. */
+  durationMs: number;
   onUndo: () => void;
 }) {
   return (
     <motion.tr
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
       exit={{ opacity: 0, x: -24 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="border-b border-border/40 bg-gradient-accent-soft last:border-0"
+      className="border-b border-border/40 last:border-0"
     >
-      <td colSpan={colSpan} className="relative px-4 py-3">
-        <div className="flex items-center justify-between gap-3">
-          <span className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-            <Trash2 className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">
-              Deleted <span className="font-medium text-foreground">{label}</span>
-            </span>
-          </span>
-          <div className="flex shrink-0 items-center gap-3">
-            <span
-              className="tabular-nums text-xs text-muted-foreground"
-              aria-live="off"
-            >
-              {secondsLeft}s
-            </span>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={onUndo}>
-              <RotateCcw className="h-3 w-3" />
-              Undo
-            </Button>
-          </div>
+      {/* overflow-hidden clips the panel so it appears to slide in from the
+          row's own right edge rather than from off-screen. */}
+      <td colSpan={colSpan} className="overflow-hidden p-0">
+        {/* Both animations are CSS, not motion. These sit inside an
+            AnimatePresence with initial={false}, and a motion child inheriting
+            that renders straight at its animate state — the bar mounted at
+            scaleX(0), invisible, and the panel never slid. CSS ignores that
+            context entirely. */}
+        <div
+          style={{ animation: "undo-slide-in 260ms cubic-bezier(0.32,0.72,0,1)" }}
+          className="relative flex items-center justify-end bg-muted px-4 py-3"
+        >
+          <Button variant="ghost" size="sm" className="gap-1.5" onClick={onUndo}>
+            <RotateCcw className="h-3 w-3" />
+            Undo
+          </Button>
+          <span
+            aria-hidden
+            // Exempt from the global reduced-motion override: this bar is the
+            // only cue for how long is left, so freezing it removes
+            // information rather than decoration.
+            data-motion-essential
+            style={{
+              transformOrigin: "left",
+              animation: `undo-drain ${durationMs}ms linear forwards`,
+            }}
+            className="absolute inset-x-0 bottom-0 block h-0.5 bg-primary"
+          />
         </div>
-        {/* Drains left to right so the remaining time is readable at a glance,
-            without needing to read the number. */}
-        <span
-          aria-hidden
-          className="absolute inset-x-0 bottom-0 h-0.5 origin-left bg-primary/60"
-          style={{ transform: `scaleX(${progress})` }}
-        />
       </td>
     </motion.tr>
   );
