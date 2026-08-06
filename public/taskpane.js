@@ -1,7 +1,5 @@
 /* global Office */
 
-let cachedSignatureHtml = null;
-
 // Derive API base from the current page origin
 const API_URL = window.location.origin + "/api/signature";
 
@@ -24,10 +22,6 @@ function setStatus(type, message) {
   el.textContent = message;
 }
 
-function setButtonState(enabled) {
-  document.getElementById("btnApply").disabled = !enabled;
-}
-
 function hidePicker() {
   document.getElementById("pickerSection").style.display = "none";
   document.getElementById("pickerList").innerHTML = "";
@@ -35,8 +29,16 @@ function hidePicker() {
 
 var SKIP_AUTH = false;
 
-/** Office's documented ceiling for the `data` argument of setSignatureAsync. */
-var SIGNATURE_MAX_CHARS = 30000;
+/**
+ * Everything we insert is wrapped in this id so a second visit can find the
+ * previous signature and take it back out. Without it, picking again would
+ * stack a second signature underneath the first.
+ */
+var SIGNATURE_MARKER = "bss-signature-block";
+
+function wrapSignature(html) {
+  return '<div id="' + SIGNATURE_MARKER + '">' + html + "</div>";
+}
 
 /**
  * Read the sending address off the compose item. For a shared mailbox this is
@@ -69,7 +71,6 @@ function getFromAddress() {
 
 async function fetchSignature(selectedUserId) {
   try {
-    setButtonState(false);
     hidePicker();
 
     var headers = {};
@@ -136,25 +137,17 @@ async function fetchSignature(selectedUserId) {
       throw new Error(errData.error || "Server returned " + response.status);
     }
 
-    cachedSignatureHtml = await response.text();
+    var signatureHtml = await response.text();
     var appliedFor = response.headers.get("X-Signature-User") || fromEmail;
-    var viaShared = response.headers.get("X-Signature-Via-Shared-Mailbox") === "true";
 
     hidePicker();
-    setButtonState(true);
 
-    // Once we know whose signature it is there is nothing left to decide, so
-    // apply it and get out of the way. The Apply button stays for re-applying
-    // after an edit, in hosts that leave the pane open.
-    applySignature(
-      viaShared
-        ? "Signature applied for " + appliedFor + " (sending from " + fromEmail + ")"
-        : "Signature applied for " + appliedFor
-    );
+    // Nothing left to decide once we know whose signature it is: put it in and
+    // close. Reopening the pane is how you correct a wrong pick.
+    applySignature(signatureHtml, appliedFor);
   } catch (err) {
     console.error("Fetch signature error:", err);
     setStatus("error", err.message || "Unknown error occurred");
-    setButtonState(false);
   }
 }
 
@@ -206,41 +199,94 @@ function renderPicker(payload) {
 }
 
 /**
- * Ask Outlook to put the signature in the message.
- *
- * setSignatureAsync is the right call — it fills the signature area without
- * moving the cursor — but Office caps its `data` at 30,000 characters and
- * classic Outlook throws Sys.ArgumentOutOfRangeException past that rather than
- * failing through the callback. Signatures carrying base64 images run several
- * times larger, so above the cap we insert at the cursor instead, which allows
- * a megabyte. On a fresh compose that lands in the same place.
+ * Read the current message body as HTML.
  */
-function insertHtml(html, callback) {
-  var body = Office.context.mailbox.item.body;
-  var options = { coercionType: Office.CoercionType.Html };
+function getBodyHtml() {
+  return new Promise(function (resolve, reject) {
+    Office.context.mailbox.item.body.getAsync(
+      Office.CoercionType.Html,
+      function (result) {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+          resolve(result.value || "");
+        } else {
+          reject(new Error(result.error && result.error.message));
+        }
+      }
+    );
+  });
+}
 
-  if (html.length <= SIGNATURE_MAX_CHARS) {
-    try {
-      body.setSignatureAsync(html, options, callback);
-      return;
-    } catch (e) {
-      console.log("setSignatureAsync threw, falling back to cursor insert:", e);
-    }
-  }
+function setBodyHtml(html) {
+  return new Promise(function (resolve, reject) {
+    Office.context.mailbox.item.body.setAsync(
+      html,
+      { coercionType: Office.CoercionType.Html },
+      function (result) {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+          resolve();
+        } else {
+          reject(new Error(result.error && result.error.message));
+        }
+      }
+    );
+  });
+}
 
-  body.setSelectedDataAsync(html, options, callback);
+function insertAtCursor(html) {
+  return new Promise(function (resolve, reject) {
+    Office.context.mailbox.item.body.setSelectedDataAsync(
+      html,
+      { coercionType: Office.CoercionType.Html },
+      function (result) {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+          resolve();
+        } else {
+          reject(new Error(result.error && result.error.message));
+        }
+      }
+    );
+  });
 }
 
 /**
- * Outlook only lets an add-in close its own pane where Office.addin is
- * available; elsewhere this is a no-op and the success message stands in.
+ * Put the signature in the message, replacing one we put there earlier.
+ *
+ * setSignatureAsync would replace on its own, but Office caps its data at
+ * 30,000 characters and a signature carrying base64 images runs several times
+ * that, so it isn't available to us. Instead every insert is wrapped in
+ * SIGNATURE_MARKER: the first one goes in at the cursor, and a later one finds
+ * that wrapper, drops it, and rewrites the body. Rewriting only happens on a
+ * correction, so a first insert never disturbs what has been typed.
+ */
+async function putSignature(html) {
+  var body = await getBodyHtml();
+  var doc = new DOMParser().parseFromString(body, "text/html");
+  var existing = doc.getElementById(SIGNATURE_MARKER);
+
+  if (!existing) {
+    await insertAtCursor(wrapSignature(html));
+    return;
+  }
+
+  existing.innerHTML = html;
+  await setBodyHtml(doc.body.innerHTML);
+}
+
+/**
+ * Close the pane. Outlook exposes two different calls depending on host and
+ * version, and neither is guaranteed, so try both and let the status message
+ * stand in where neither works.
  */
 function closePane() {
   try {
+    if (Office.context.ui && typeof Office.context.ui.closeContainer === "function") {
+      Office.context.ui.closeContainer();
+      return;
+    }
     if (Office.addin && typeof Office.addin.hide === "function") {
-      var result = Office.addin.hide();
-      if (result && typeof result.catch === "function") {
-        result.catch(function (e) {
+      var hidden = Office.addin.hide();
+      if (hidden && typeof hidden.catch === "function") {
+        hidden.catch(function (e) {
           console.log("Taskpane close rejected:", e);
         });
       }
@@ -250,32 +296,15 @@ function closePane() {
   }
 }
 
-function applySignature(successMessage) {
-  if (!cachedSignatureHtml) {
-    setStatus("error", "No signature loaded. Click Refresh first.");
-    return;
-  }
-
+async function applySignature(html, appliedFor) {
   setStatus("loading", "Applying signature...");
-  setButtonState(false);
 
-  insertHtml(cachedSignatureHtml, function (asyncResult) {
-    setButtonState(true);
-
-    if (asyncResult.status !== Office.AsyncResultStatus.Succeeded) {
-      console.error("Signature insert error:", asyncResult.error);
-      setStatus("error", "Failed to apply: " + asyncResult.error.message);
-      return;
-    }
-
-    setStatus("success", successMessage || "Signature applied successfully!");
+  try {
+    await putSignature(html);
+    setStatus("success", "Signature applied for " + appliedFor + ".");
     closePane();
-  });
-}
-
-function refreshSignature() {
-  cachedSignatureHtml = null;
-  hidePicker();
-  setStatus("loading", "Refreshing signature...");
-  fetchSignature();
+  } catch (err) {
+    console.error("Signature insert error:", err);
+    setStatus("error", "Failed to apply: " + (err.message || "Unknown error"));
+  }
 }

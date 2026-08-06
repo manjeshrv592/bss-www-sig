@@ -198,7 +198,14 @@ function continueWithEmail(userEmail, token, item, event, isAuto) {
  */
 var SIGNATURE_MAX_CHARS = 30000;
 
+/**
+ * Must match SIGNATURE_MARKER in taskpane.js. Whatever we insert here is what
+ * the picker has to find and replace when someone corrects the sender.
+ */
+var SIGNATURE_MARKER = "bss-signature-block";
+
 function setSignature(html, item, event, isAuto) {
+  var wrapped = '<div id="' + SIGNATURE_MARKER + '">' + html + "</div>";
   var options = { coercionType: Office.CoercionType.Html };
 
   var done = function (result) {
@@ -210,16 +217,16 @@ function setSignature(html, item, event, isAuto) {
     if (event) event.completed();
   };
 
-  if (isAuto && html.length <= SIGNATURE_MAX_CHARS) {
+  if (isAuto && wrapped.length <= SIGNATURE_MAX_CHARS) {
     try {
-      item.body.setSignatureAsync(html, options, done);
+      item.body.setSignatureAsync(wrapped, options, done);
       return;
     } catch (e) {
       console.log("setSignatureAsync threw, falling back to cursor insert:", e);
     }
   }
 
-  item.body.setSelectedDataAsync(html, options, done);
+  item.body.setSelectedDataAsync(wrapped, options, done);
 }
 
 function autoInsertSignature(event) {
