@@ -1,6 +1,6 @@
 /**
  * Email Signature Template Generator
- * Generates HTML email signature with user data, certifications, banners, and legal text
+ * Generates HTML email signature with user data, certifications, banners, and disclaimers
  * Adapted from the Blackstone Shipping signature project
  */
 
@@ -32,7 +32,7 @@ interface SignatureBanner {
   link: string | null;
 }
 
-interface SignatureLegalText {
+interface SignatureDisclaimer {
   content: string;
 }
 
@@ -59,7 +59,7 @@ export function generateSignatureHtml(
   user: SignatureUser,
   certifications: SignatureCertification[] = [],
   banners: SignatureBanner[] = [],
-  legalTexts: SignatureLegalText[] = [],
+  disclaimers: SignatureDisclaimer[] = [],
   opts: SignatureOptions = {}
 ): string {
   const options = { ...DEFAULT_OPTIONS, ...opts };
@@ -156,10 +156,10 @@ export function generateSignatureHtml(
       </div>`
     : "";
 
-  // Generate legal text HTML
-  let legalTextHtml = "";
-  if (legalTexts.length > 0 || registrationHtml) {
-    const ltContent = legalTexts
+  // Generate disclaimer HTML
+  let disclaimerHtml = "";
+  if (disclaimers.length > 0 || registrationHtml) {
+    const ltContent = disclaimers
       .map(
         (lt) => `
       <div style="font-size: 12px; color: #6b7280; line-height: 1.4; word-wrap: break-word; overflow-wrap: break-word; text-align: justify;">
@@ -167,7 +167,7 @@ export function generateSignatureHtml(
       </div>`
       )
       .join("");
-    legalTextHtml = `
+    disclaimerHtml = `
     <table cellpadding="0" cellspacing="0" border="0" width="500" style="width: 500px; table-layout: fixed;">
       <tr>
         <td height="15" style="font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">&nbsp;</td>
@@ -305,7 +305,7 @@ export function generateSignatureHtml(
   </table>
   ` : ""}
   ${bannersHtml}
-  ${legalTextHtml}
+  ${disclaimerHtml}
 
   <!-- Footer: width attribute + align attribute used for classic Outlook (Word renderer ignores width:100% CSS) -->
   <table cellpadding="0" cellspacing="0" border="0" width="500" style="margin-top: 15px; width: 500px;">

@@ -3,25 +3,41 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+interface Options<T> {
+  /** Rows on the current page, already in order. */
+  items: T[];
+  /** Absolute index of the first row on this page. */
+  offset: number;
+  /** Total rows across all pages. */
+  total: number;
+  /** Move one row to an absolute position in the full list. */
+  move: (id: string, toIndex: number) => Promise<void>;
+}
+
 /**
- * Drag-to-reorder for a list of records that carry a `sortOrder` column.
+ * Drag-to-reorder for a paginated list ordered by a `sortOrder` column.
  *
- * Rows reorder optimistically and the new order is persisted through
- * `persist`, which receives every id in its intended order. Rows are only
- * draggable while the grip handle is held, so buttons inside a row and normal
- * text selection keep working.
+ * Positions are absolute across the whole list, not per page: dragging within
+ * the page reorders locally, while the position box can send a row to any index
+ * — including onto another page, which dragging cannot reach. Only the moved id
+ * and its target index go to the server, so a page holds no stale copy of the
+ * full ordering.
  *
- * Uses native HTML5 drag events — no drag-and-drop dependency.
+ * Rows are draggable only while the grip handle is held, so buttons inside a
+ * row and ordinary text selection keep working. Native HTML5 drag events — no
+ * drag-and-drop dependency.
  */
-export function useDragOrder<T extends { id: string }>(
-  source: T[],
-  persist: (orderedIds: string[]) => Promise<void>
-) {
+export function useDragOrder<T extends { id: string }>({
+  items: source,
+  offset,
+  total,
+  move: persistMove,
+}: Options<T>) {
   const router = useRouter();
   const [isReordering, startTransition] = useTransition();
 
   // Local copy so a drag applies instantly; re-synced during render whenever
-  // the server sends a fresh list.
+  // the server sends a fresh page.
   const [items, setItems] = useState(source);
   const [syncedFrom, setSyncedFrom] = useState(source);
   if (syncedFrom !== source) {
@@ -39,14 +55,25 @@ export function useDragOrder<T extends { id: string }>(
     setHandleHeld(false);
   };
 
-  const move = (from: number, to: number) => {
+  /** `to` is an index within the current page. */
+  const moveOnPage = (from: number, to: number) => {
     if (from === to || to < 0 || to >= items.length) return;
+    const id = items[from].id;
     const next = [...items];
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
     setItems(next);
     startTransition(async () => {
-      await persist(next.map((i) => i.id));
+      await persistMove(id, offset + to);
+      router.refresh();
+    });
+  };
+
+  /** `toAbsolute` is 0-based across the entire list, so it may leave this page. */
+  const moveTo = (id: string, toAbsolute: number) => {
+    const clamped = Math.max(0, Math.min(toAbsolute, total - 1));
+    startTransition(async () => {
+      await persistMove(id, clamped);
       router.refresh();
     });
   };
@@ -68,7 +95,7 @@ export function useDragOrder<T extends { id: string }>(
     },
     onDrop: (e: React.DragEvent) => {
       e.preventDefault();
-      if (dragIndex !== null) move(dragIndex, index);
+      if (dragIndex !== null) moveOnPage(dragIndex, index);
       reset();
     },
     onDragEnd: reset,
@@ -93,13 +120,16 @@ export function useDragOrder<T extends { id: string }>(
     onKeyDown: (e: React.KeyboardEvent) => {
       if (e.key === "ArrowUp") {
         e.preventDefault();
-        move(index, index - 1);
+        // At the top of a page, step onto the previous page rather than stall.
+        if (index === 0) moveTo(items[index].id, offset - 1);
+        else moveOnPage(index, index - 1);
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        move(index, index + 1);
+        if (index === items.length - 1) moveTo(items[index].id, offset + index + 1);
+        else moveOnPage(index, index + 1);
       }
     },
   });
 
-  return { items, isReordering, getRowProps, rowStateClass, getHandleProps };
+  return { items, isReordering, offset, total, getRowProps, rowStateClass, getHandleProps, moveTo };
 }

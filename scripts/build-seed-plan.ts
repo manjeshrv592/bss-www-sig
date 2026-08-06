@@ -219,7 +219,7 @@ function main() {
   }
 
   const certifications = new Map<string, string>(); // name -> file
-  const legalTexts = new Map<string, string[]>(); // content -> labels
+  const disclaimers = new Map<string, string[]>(); // content -> labels
   const registrationLines = new Map<string, string[]>(); // text -> labels
   const assignments: {
     scope: string;
@@ -245,8 +245,8 @@ function main() {
       assignments.push({ scope, scopeValue, resourceType: "certification", resourceName: name });
     }
     if (r.legal && (isBaseline || r.legal !== base?.legal)) {
-      if (!legalTexts.has(r.legal)) legalTexts.set(r.legal, []);
-      legalTexts.get(r.legal)!.push(r.label);
+      if (!disclaimers.has(r.legal)) disclaimers.set(r.legal, []);
+      disclaimers.get(r.legal)!.push(r.label);
     }
     if (r.registration && (isBaseline || r.registration !== base?.registration)) {
       if (!registrationLines.has(r.registration)) registrationLines.set(r.registration, []);
@@ -254,7 +254,7 @@ function main() {
     }
   }
 
-  const legalList = [...legalTexts].map(([content, labels]) => ({
+  const disclaimerList = [...disclaimers].map(([content, labels]) => ({
     name: `${labels[0]}${labels.length > 1 ? ` +${labels.length - 1} more` : ""}`,
     content,
     labels,
@@ -274,8 +274,8 @@ function main() {
     const scopeValue = isBaseline ? r.country : r.office;
 
     if (r.legal && (isBaseline || r.legal !== base?.legal)) {
-      const lt = legalList.find((l) => l.content === r.legal)!;
-      assignments.push({ scope, scopeValue, resourceType: "legal_text", resourceName: lt.name });
+      const lt = disclaimerList.find((l) => l.content === r.legal)!;
+      assignments.push({ scope, scopeValue, resourceType: "disclaimer", resourceName: lt.name });
     }
     if (r.registration && (isBaseline || r.registration !== base?.registration)) {
       const rl = regList.find((l) => l.text === r.registration)!;
@@ -295,7 +295,7 @@ function main() {
     certifications: [...certifications]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([name, file]) => ({ name, file })),
-    legalTexts: legalList.map(({ name, content }) => ({ name, content })),
+    disclaimers: disclaimerList.map(({ name, content }) => ({ name, content })),
     registrationLines: regList.map(({ name, text }) => ({ name, text })),
     assignments,
     warnings,
@@ -306,7 +306,7 @@ function main() {
   console.log(`Wrote ${path.relative(ROOT, OUT_PATH)}`);
   console.log(`  rows               : ${plan.rows.length}`);
   console.log(`  certifications     : ${plan.certifications.length}`);
-  console.log(`  legal texts        : ${plan.legalTexts.length}`);
+  console.log(`  disclaimers        : ${plan.disclaimers.length}`);
   console.log(`  registration lines : ${plan.registrationLines.length}`);
   console.log(`  assignments        : ${plan.assignments.length}`);
   if (warnings.length) {

@@ -16,7 +16,7 @@ import {
   createCertification,
   updateCertification,
   deleteCertification,
-  reorderCertifications,
+  moveCertification,
 } from "@/lib/actions/resources";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { OrderCell } from "@/components/order-cell";
@@ -32,18 +32,24 @@ interface Certification {
 
 export function CertificationList({
   certifications,
+  offset,
+  total,
 }: {
   certifications: Certification[];
+  offset: number;
+  total: number;
 }) {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<Certification | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const { items, getRowProps, rowStateClass, getHandleProps } = useDragOrder(
-    certifications,
-    reorderCertifications
-  );
+  const { items, getRowProps, rowStateClass, getHandleProps, moveTo } = useDragOrder({
+    items: certifications,
+    offset,
+    total,
+    move: moveCertification,
+  });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -185,7 +191,12 @@ export function CertificationList({
                       !cert.isActive ? "opacity-50" : ""
                     } ${rowStateClass(index)}`}
                   >
-                    <OrderCell index={index} handleProps={getHandleProps(index, cert.name)} />
+                    <OrderCell
+                      index={offset + index}
+                      total={total}
+                      handleProps={getHandleProps(index, cert.name)}
+                      onMoveTo={(to) => moveTo(cert.id, to)}
+                    />
                     <td className="px-4 py-3">
                       {cert.image ? (
                         <img src={cert.image} alt={cert.alt ?? cert.name} className="h-8 object-contain" />

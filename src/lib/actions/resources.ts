@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity";
 import { revalidatePath } from "next/cache";
+import { movedOrder } from "@/lib/order";
 
 // ─── Certifications ────────────────────────────
 
@@ -176,57 +177,57 @@ export async function reorderBanners(orderedIds: string[]) {
   revalidatePath("/banners");
 }
 
-// ─── Legal Texts ───────────────────────────────
+// ─── Disclaimers ───────────────────────────────
 
-export async function createLegalText(data: {
+export async function createDisclaimer(data: {
   name: string;
   content: string;
 }) {
-  // New legal texts go to the end.
-  const last = await prisma.legalText.findFirst({
+  // New disclaimers go to the end.
+  const last = await prisma.disclaimer.findFirst({
     orderBy: { sortOrder: "desc" },
     select: { sortOrder: true },
   });
 
-  const text = await prisma.legalText.create({
+  const text = await prisma.disclaimer.create({
     data: { ...data, sortOrder: (last?.sortOrder ?? -1) + 1 },
   });
   await logActivity({
-    action: `Created legal text "${data.name}"`,
-    entity: "legal_text",
+    action: `Created disclaimer "${data.name}"`,
+    entity: "disclaimer",
     entityId: text.id,
   });
-  revalidatePath("/legal-texts");
+  revalidatePath("/disclaimers");
   return text;
 }
 
-export async function updateLegalText(
+export async function updateDisclaimer(
   id: string,
   data: { name?: string; content?: string; isActive?: boolean }
 ) {
-  const text = await prisma.legalText.update({ where: { id }, data });
+  const text = await prisma.disclaimer.update({ where: { id }, data });
   await logActivity({
-    action: `Updated legal text "${text.name}"`,
-    entity: "legal_text",
+    action: `Updated disclaimer "${text.name}"`,
+    entity: "disclaimer",
     entityId: id,
   });
-  revalidatePath("/legal-texts");
+  revalidatePath("/disclaimers");
   return text;
 }
 
-export async function deleteLegalText(id: string) {
-  const text = await prisma.legalText.delete({ where: { id } });
+export async function deleteDisclaimer(id: string) {
+  const text = await prisma.disclaimer.delete({ where: { id } });
   await logActivity({
-    action: `Deleted legal text "${text.name}"`,
-    entity: "legal_text",
+    action: `Deleted disclaimer "${text.name}"`,
+    entity: "disclaimer",
     entityId: id,
   });
-  revalidatePath("/legal-texts");
+  revalidatePath("/disclaimers");
 }
 
 /**
- * Persist a new legal text order. `orderedIds` must be the full list of legal
- * text ids in their intended display order.
+ * Persist a new disclaimer order. `orderedIds` must be the full list of
+ * disclaimer ids in their intended display order.
  */
 // ─── Registration Lines ────────────────────────
 
@@ -322,13 +323,57 @@ export async function deleteFooterLine(id: string) {
   revalidatePath("/footer-lines");
 }
 
-export async function reorderLegalTexts(orderedIds: string[]) {
+export async function reorderDisclaimers(orderedIds: string[]) {
   await prisma.$transaction(
     orderedIds.map((id, index) =>
-      prisma.legalText.update({ where: { id }, data: { sortOrder: index } })
+      prisma.disclaimer.update({ where: { id }, data: { sortOrder: index } })
     )
   );
 
-  await logActivity({ action: `Reordered legal texts`, entity: "legal_text" });
-  revalidatePath("/legal-texts");
+  await logActivity({ action: `Reordered disclaimers`, entity: "disclaimer" });
+  revalidatePath("/disclaimers");
+}
+
+// ─── Ordering ──────────────────────────────────
+//
+// Lists are paginated, so the client can't send the full order — it sends one
+// id and the absolute position it should occupy. The server holds the complete
+// ordering, which also keeps concurrent edits from clobbering each other.
+
+const ORDER_BY = [{ sortOrder: "asc" as const }, { createdAt: "asc" as const }];
+
+/** Move a certification to an absolute position in the full list. */
+export async function moveCertification(id: string, toIndex: number) {
+  const all = await prisma.certification.findMany({ orderBy: ORDER_BY, select: { id: true } });
+  const next = movedOrder(all, id, toIndex);
+  if (!next) return;
+  await prisma.$transaction(
+    next.map((r, i) => prisma.certification.update({ where: { id: r.id }, data: { sortOrder: i } }))
+  );
+  await logActivity({ action: `Reordered certifications`, entity: "certification" });
+  revalidatePath("/certifications");
+}
+
+/** Move a banner to an absolute position in the full list. */
+export async function moveBanner(id: string, toIndex: number) {
+  const all = await prisma.banner.findMany({ orderBy: ORDER_BY, select: { id: true } });
+  const next = movedOrder(all, id, toIndex);
+  if (!next) return;
+  await prisma.$transaction(
+    next.map((r, i) => prisma.banner.update({ where: { id: r.id }, data: { sortOrder: i } }))
+  );
+  await logActivity({ action: `Reordered banners`, entity: "banner" });
+  revalidatePath("/banners");
+}
+
+/** Move a disclaimer to an absolute position in the full list. */
+export async function moveDisclaimer(id: string, toIndex: number) {
+  const all = await prisma.disclaimer.findMany({ orderBy: ORDER_BY, select: { id: true } });
+  const next = movedOrder(all, id, toIndex);
+  if (!next) return;
+  await prisma.$transaction(
+    next.map((r, i) => prisma.disclaimer.update({ where: { id: r.id }, data: { sortOrder: i } }))
+  );
+  await logActivity({ action: `Reordered disclaimers`, entity: "disclaimer" });
+  revalidatePath("/disclaimers");
 }

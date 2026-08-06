@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
       user,
       signature.certifications,
       signature.banners,
-      signature.legalTexts,
+      signature.disclaimers,
       {
         defaultCompanyName: signature.countryBranding.companyName,
         website: signature.countryBranding.website ?? undefined,

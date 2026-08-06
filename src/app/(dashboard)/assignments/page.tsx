@@ -6,7 +6,7 @@ export default async function AssignmentsPage() {
     assignments,
     certifications,
     banners,
-    legalTexts,
+    disclaimers,
     registrationLines,
     footerLines,
     countries,
@@ -26,7 +26,7 @@ export default async function AssignmentsPage() {
         select: { id: true, name: true },
         orderBy: { name: "asc" },
       }),
-      prisma.legalText.findMany({
+      prisma.disclaimer.findMany({
         where: { isActive: true },
         select: { id: true, name: true },
         orderBy: { name: "asc" },
@@ -93,7 +93,7 @@ export default async function AssignmentsPage() {
         assignments={assignments}
         certifications={certifications}
         banners={banners}
-        legalTexts={legalTexts}
+        disclaimers={disclaimers}
         registrationLines={registrationLines}
         footerLines={footerLines}
         countries={countryList}

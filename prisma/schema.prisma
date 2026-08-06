@@ -148,7 +148,7 @@ model Banner {
   @@map("banners")
 }
 
-model LegalText {
+model Disclaimer {
   id        String   @id @default(cuid())
   name      String
   content   String   @db.Text
@@ -159,7 +159,7 @@ model LegalText {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([sortOrder])
-  @@map("legal_texts")
+  @@map("disclaimers")
 }
 
 /// A single line rendered directly beneath the disclaimer, in the same style.
@@ -247,17 +247,6 @@ model UserOverride {
   @@unique([msUserId, resourceType, resourceId])
   @@index([msUserId])
   @@map("user_overrides")
-}
-
-model CountryConfig {
-  id          String   @id @default(cuid())
-  country     String   @unique
-  companyName String   @map("company_name")
-  website     String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@map("country_config")
 }
 
 model SyncMeta {

@@ -13,16 +13,16 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, FileText, Loader2 } from "lucide-react";
 import {
-  createLegalText,
-  updateLegalText,
-  deleteLegalText,
-  reorderLegalTexts,
+  createDisclaimer,
+  updateDisclaimer,
+  deleteDisclaimer,
+  moveDisclaimer,
 } from "@/lib/actions/resources";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { OrderCell } from "@/components/order-cell";
 
-interface LegalText {
+interface Disclaimer {
   id: string;
   name: string;
   content: string;
@@ -30,17 +30,27 @@ interface LegalText {
   createdAt: Date;
 }
 
-export function LegalTextList({ legalTexts }: { legalTexts: LegalText[] }) {
+export function DisclaimerList({
+  disclaimers,
+  offset,
+  total,
+}: {
+  disclaimers: Disclaimer[];
+  offset: number;
+  total: number;
+}) {
   const [open, setOpen] = useState(false);
-  const [editItem, setEditItem] = useState<LegalText | null>(null);
+  const [editItem, setEditItem] = useState<Disclaimer | null>(null);
   const [content, setContent] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const { items, getRowProps, rowStateClass, getHandleProps } = useDragOrder(
-    legalTexts,
-    reorderLegalTexts
-  );
+  const { items, getRowProps, rowStateClass, getHandleProps, moveTo } = useDragOrder({
+    items: disclaimers,
+    offset,
+    total,
+    move: moveDisclaimer,
+  });
 
   const openCreate = () => {
     setEditItem(null);
@@ -48,7 +58,7 @@ export function LegalTextList({ legalTexts }: { legalTexts: LegalText[] }) {
     setOpen(true);
   };
 
-  const openEdit = (item: LegalText) => {
+  const openEdit = (item: Disclaimer) => {
     setEditItem(item);
     setContent(item.content);
     setOpen(true);
@@ -61,9 +71,9 @@ export function LegalTextList({ legalTexts }: { legalTexts: LegalText[] }) {
 
     startTransition(async () => {
       if (editItem) {
-        await updateLegalText(editItem.id, { name, content });
+        await updateDisclaimer(editItem.id, { name, content });
       } else {
-        await createLegalText({ name, content });
+        await createDisclaimer({ name, content });
       }
       setOpen(false);
       setEditItem(null);
@@ -73,16 +83,16 @@ export function LegalTextList({ legalTexts }: { legalTexts: LegalText[] }) {
   };
 
   const handleDelete = (id: string) => {
-    if (!confirm("Delete this legal text?")) return;
+    if (!confirm("Delete this disclaimer?")) return;
     startTransition(async () => {
-      await deleteLegalText(id);
+      await deleteDisclaimer(id);
       router.refresh();
     });
   };
 
-  const handleToggle = (item: LegalText) => {
+  const handleToggle = (item: Disclaimer) => {
     startTransition(async () => {
-      await updateLegalText(item.id, { isActive: !item.isActive });
+      await updateDisclaimer(item.id, { isActive: !item.isActive });
       router.refresh();
     });
   };
@@ -94,12 +104,15 @@ export function LegalTextList({ legalTexts }: { legalTexts: LegalText[] }) {
           <DialogTrigger asChild>
             <Button size="sm" className="gap-2" onClick={openCreate}>
               <Plus className="h-4 w-4" />
-              Add Legal Text
+              Add Disclaimer
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          {/* sm: prefix required — the base DialogContent sets sm:max-w-sm, and
+              tailwind-merge keeps both when the modifiers differ, so an
+              unprefixed max-w-2xl loses to it on anything above mobile. */}
+          <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{editItem ? "Edit Legal Text" : "New Legal Text"}</DialogTitle>
+              <DialogTitle>{editItem ? "Edit Disclaimer" : "New Disclaimer"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -143,9 +156,9 @@ export function LegalTextList({ legalTexts }: { legalTexts: LegalText[] }) {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <FileText className="h-10 w-10 text-muted-foreground/40 mb-3" />
-            <p className="text-sm font-medium">No legal texts yet</p>
+            <p className="text-sm font-medium">No disclaimers yet</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Add your first legal disclaimer.
+              Add your first disclaimer.
             </p>
           </CardContent>
         </Card>
@@ -171,7 +184,12 @@ export function LegalTextList({ legalTexts }: { legalTexts: LegalText[] }) {
                       !item.isActive ? "opacity-50" : ""
                     } ${rowStateClass(index)}`}
                   >
-                    <OrderCell index={index} handleProps={getHandleProps(index, item.name)} />
+                    <OrderCell
+                      index={offset + index}
+                      total={total}
+                      handleProps={getHandleProps(index, item.name)}
+                      onMoveTo={(to) => moveTo(item.id, to)}
+                    />
                     <td className="px-4 py-3 font-medium">{item.name}</td>
                     <td className="px-4 py-3 max-w-[400px]">
                       <div

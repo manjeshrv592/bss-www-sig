@@ -24,13 +24,13 @@ export default async function UserProfilePage(props: {
 }) {
   const { id } = await props.params;
 
-  const [user, signature, allCerts, allBanners, allLegal, allRegistration, allFooter] =
+  const [user, signature, allCerts, allBanners, allDisclaimers, allRegistration, allFooter] =
     await Promise.all([
     prisma.msUser.findUnique({ where: { id } }),
     resolveSignature(id),
     prisma.certification.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.banner.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.legalText.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.disclaimer.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.registrationLine.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.footerLine.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
@@ -170,7 +170,7 @@ export default async function UserProfilePage(props: {
                   user,
                   signature.certifications,
                   signature.banners,
-                  signature.legalTexts,
+                  signature.disclaimers,
                   {
                     defaultCompanyName: signature.countryBranding.companyName,
                     website: signature.countryBranding.website ?? undefined,
@@ -276,12 +276,12 @@ export default async function UserProfilePage(props: {
                 )}
               </div>
               <div>
-                <p className="text-xs font-medium mb-1">Legal Texts ({signature.legalTexts.length})</p>
-                {signature.legalTexts.length === 0 ? (
+                <p className="text-xs font-medium mb-1">Disclaimers ({signature.disclaimers.length})</p>
+                {signature.disclaimers.length === 0 ? (
                   <p className="text-xs text-muted-foreground">None</p>
                 ) : (
                   <ul className="space-y-0.5">
-                    {signature.legalTexts.map((l) => (
+                    {signature.disclaimers.map((l) => (
                       <li key={l.id} className="text-xs text-muted-foreground">• {l.name}</li>
                     ))}
                   </ul>
@@ -305,7 +305,7 @@ export default async function UserProfilePage(props: {
               currentOverrides={overrides.map((o) => ({ resourceType: o.resourceType, resourceId: o.resourceId }))}
               certifications={allCerts}
               banners={allBanners}
-              legalTexts={allLegal}
+              disclaimers={allDisclaimers}
               registrationLines={allRegistration}
               footerLines={allFooter}
             />

@@ -23,7 +23,7 @@ interface Props {
   currentOverrides: Override[];
   certifications: Resource[];
   banners: Resource[];
-  legalTexts: Resource[];
+  disclaimers: Resource[];
   registrationLines: Resource[];
   footerLines: Resource[];
 }
@@ -31,7 +31,7 @@ interface Props {
 const RESOURCE_LABELS: Record<string, string> = {
   certification: "Certification",
   banner: "Banner",
-  legal_text: "Legal Text",
+  disclaimer: "Disclaimer",
   registration_line: "Registration Line",
   footer_line: "Footer Line",
 };
@@ -42,7 +42,7 @@ export function UserOverrideManager({
   currentOverrides,
   certifications,
   banners,
-  legalTexts,
+  disclaimers,
   registrationLines,
   footerLines,
 }: Props) {
@@ -58,7 +58,7 @@ export function UserOverrideManager({
     if (type === "banner") return banners;
     if (type === "registration_line") return registrationLines;
     if (type === "footer_line") return footerLines;
-    return legalTexts;
+    return disclaimers;
   };
 
   const getResourceName = (type: string, id: string) => {
@@ -177,7 +177,7 @@ export function UserOverrideManager({
           <SelectContent position="popper">
             <SelectItem value="certification">Certification</SelectItem>
             <SelectItem value="banner">Banner</SelectItem>
-            <SelectItem value="legal_text">Legal Text</SelectItem>
+            <SelectItem value="disclaimer">Disclaimer</SelectItem>
             <SelectItem value="registration_line">Registration Line</SelectItem>
             <SelectItem value="footer_line">Footer Line</SelectItem>
           </SelectContent>

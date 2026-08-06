@@ -8,13 +8,13 @@ import { ArrowLeft, Users, Shield, Mail, Link2, Award, Image, FileText } from "l
 const RESOURCE_LABELS: Record<string, string> = {
   certification: "Certification",
   banner: "Banner",
-  legal_text: "Legal Text",
+  disclaimer: "Disclaimer",
 };
 
 const RESOURCE_ICONS: Record<string, typeof Award> = {
   certification: Award,
   banner: Image,
-  legal_text: FileText,
+  disclaimer: FileText,
 };
 
 export default async function GroupDetailPage(props: {
@@ -51,16 +51,16 @@ export default async function GroupDetailPage(props: {
   // Resolve resource names for assignments
   const certIds = assignments.filter((a) => a.resourceType === "certification").map((a) => a.resourceId);
   const bannerIds = assignments.filter((a) => a.resourceType === "banner").map((a) => a.resourceId);
-  const legalIds = assignments.filter((a) => a.resourceType === "legal_text").map((a) => a.resourceId);
+  const disclaimerIds = assignments.filter((a) => a.resourceType === "disclaimer").map((a) => a.resourceId);
 
-  const [certs, banners, legals] = await Promise.all([
+  const [certs, banners, disclaimers] = await Promise.all([
     certIds.length > 0 ? prisma.certification.findMany({ where: { id: { in: certIds } }, select: { id: true, name: true } }) : [],
     bannerIds.length > 0 ? prisma.banner.findMany({ where: { id: { in: bannerIds } }, select: { id: true, name: true } }) : [],
-    legalIds.length > 0 ? prisma.legalText.findMany({ where: { id: { in: legalIds } }, select: { id: true, name: true } }) : [],
+    disclaimerIds.length > 0 ? prisma.disclaimer.findMany({ where: { id: { in: disclaimerIds } }, select: { id: true, name: true } }) : [],
   ]);
 
   const resourceNameMap = new Map<string, string>();
-  for (const r of [...certs, ...banners, ...legals]) resourceNameMap.set(r.id, r.name);
+  for (const r of [...certs, ...banners, ...disclaimers]) resourceNameMap.set(r.id, r.name);
 
   return (
     <div className="space-y-6">

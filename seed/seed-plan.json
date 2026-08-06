@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-05T09:50:59.900Z",
+  "generatedAt": "2026-08-06T05:25:53.011Z",
   "source": "seed/seed-data.xlsx",
   "rows": [
     {
@@ -197,7 +197,7 @@
       "file": "WCAworld Partner Pay.jpg"
     }
   ],
-  "legalTexts": [
+  "disclaimers": [
     {
       "name": "Belgium - Antwerp",
       "content": "All our transactions are subject to the Belgian Freight Forwarding Standard Trading Conditions 2005. The text of those Conditions has been published under number 05090237 in the Annexe au Moniteur Belge dated June 24th, 2005 and can be found via following link https://www.blackstoneshipping.com/general/terms-conditions/. Unless proven otherwise they will be deemed accepted.\n \n [NL] Al onze transacties zijn onderworpen aan de Belgische Expeditievoorwaarden 2005. De tekst van deze voorwaarden werd gepubliceerd onder nummer 05090237 in de Bijlage tot het Belgisch Staatsblad van 24 juni 2005 en kan geraadpleegd worden via volgende link https://www.blackstoneshipping.com/general/terms-conditions/. Behoudens tegenbewijs worden zij geacht aanvaard te zijn.\n \n [FR] Toutes nos transactions sont soumises aux Conditions Generales Belges d'Expedition 2005. Le texte de ces conditions a ete publie sous le numero 05090237 dans l'Annexe au Moniteur Belge du 24 juin 2005 et peut etre consulte via le lien suivant https://www.blackstoneshipping.com/general/terms-conditions/. Sauf preuve contraire, elles sont reputees acceptees."
@@ -929,7 +929,7 @@
     {
       "scope": "country",
       "scopeValue": "Belgium",
-      "resourceType": "legal_text",
+      "resourceType": "disclaimer",
       "resourceName": "Belgium - Antwerp"
     },
     {
@@ -941,7 +941,7 @@
     {
       "scope": "country",
       "scopeValue": "Netherlands",
-      "resourceType": "legal_text",
+      "resourceType": "disclaimer",
       "resourceName": "Netherlands - Rotterdam"
     },
     {
@@ -953,7 +953,7 @@
     {
       "scope": "country",
       "scopeValue": "Germany",
-      "resourceType": "legal_text",
+      "resourceType": "disclaimer",
       "resourceName": "Germany - Hamburg"
     },
     {
@@ -965,7 +965,7 @@
     {
       "scope": "country",
       "scopeValue": "United Kingdom",
-      "resourceType": "legal_text",
+      "resourceType": "disclaimer",
       "resourceName": "United Kingdom - London (Watford)"
     },
     {
@@ -977,7 +977,7 @@
     {
       "scope": "country",
       "scopeValue": "United States",
-      "resourceType": "legal_text",
+      "resourceType": "disclaimer",
       "resourceName": "United States - New Jersey"
     },
     {
@@ -989,7 +989,7 @@
     {
       "scope": "country",
       "scopeValue": "Canada",
-      "resourceType": "legal_text",
+      "resourceType": "disclaimer",
       "resourceName": "Canada - Toronto"
     },
     {
@@ -1001,7 +1001,7 @@
     {
       "scope": "country",
       "scopeValue": "France",
-      "resourceType": "legal_text",
+      "resourceType": "disclaimer",
       "resourceName": "France - Marseille"
     },
     {
@@ -1013,7 +1013,7 @@
     {
       "scope": "country",
       "scopeValue": "UAE",
-      "resourceType": "legal_text",
+      "resourceType": "disclaimer",
       "resourceName": "UAE - Dubai"
     },
     {
@@ -1025,7 +1025,7 @@
     {
       "scope": "country",
       "scopeValue": "Singapore",
-      "resourceType": "legal_text",
+      "resourceType": "disclaimer",
       "resourceName": "Singapore"
     },
     {
@@ -1037,7 +1037,7 @@
     {
       "scope": "country",
       "scopeValue": "Bangladesh",
-      "resourceType": "legal_text",
+      "resourceType": "disclaimer",
       "resourceName": "Bangladesh - Dhaka +2 more"
     },
     {
@@ -1067,7 +1067,7 @@
     {
       "scope": "country",
       "scopeValue": "India",
-      "resourceType": "legal_text",
+      "resourceType": "disclaimer",
       "resourceName": "Bangladesh - Dhaka +2 more"
     },
     {
@@ -1079,7 +1079,7 @@
     {
       "scope": "country",
       "scopeValue": "Ghana",
-      "resourceType": "legal_text",
+      "resourceType": "disclaimer",
       "resourceName": "Bangladesh - Dhaka +2 more"
     },
     {
@@ -1091,7 +1091,7 @@
     {
       "scope": "country",
       "scopeValue": "Ivory Coast",
-      "resourceType": "legal_text",
+      "resourceType": "disclaimer",
       "resourceName": "Ivory Coast - Abidjan +2 more"
     },
     {
@@ -1103,7 +1103,7 @@
     {
       "scope": "country",
       "scopeValue": "Togo",
-      "resourceType": "legal_text",
+      "resourceType": "disclaimer",
       "resourceName": "Ivory Coast - Abidjan +2 more"
     },
     {
@@ -1115,7 +1115,7 @@
     {
       "scope": "country",
       "scopeValue": "Senegal",
-      "resourceType": "legal_text",
+      "resourceType": "disclaimer",
       "resourceName": "Ivory Coast - Abidjan +2 more"
     },
     {

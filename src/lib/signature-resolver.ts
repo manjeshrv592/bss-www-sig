@@ -8,7 +8,7 @@ export interface CountryBranding {
 export interface ResolvedSignature {
   certifications: { id: string; name: string; image: string | null; alt: string | null }[];
   banners: { id: string; name: string; image: string | null; alt: string | null; link: string | null }[];
-  legalTexts: { id: string; name: string; content: string }[];
+  disclaimers: { id: string; name: string; content: string }[];
   registrationLine: { id: string; name: string; text: string } | null;
   footerLine: { id: string; name: string; leftText: string; rightText: string } | null;
   countryBranding: CountryBranding;
@@ -17,7 +17,7 @@ export interface ResolvedSignature {
 }
 
 /**
- * How specific a scope is. Certifications, banners and legal texts are lists,
+ * How specific a scope is. Certifications, banners and disclaimers are lists,
  * so every matching rule contributes (OR + dedupe). The registration and footer
  * lines are single slots in the template, so stacking them would render broken
  * output — for those, the most specific matching rule wins instead.
@@ -73,7 +73,7 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
     return {
       certifications: [],
       banners: [],
-      legalTexts: [],
+      disclaimers: [],
       registrationLine: null,
       footerLine: null,
       countryBranding: DEFAULT_BRANDING,
@@ -81,9 +81,6 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
       matchedRules: [],
     };
   }
-
-  // Resolve country branding (can run in parallel with override check)
-  const countryBrandingPromise = resolveCountryBranding(user.country);
 
   // Check for user override first — replaces EVERYTHING
   if (user.overrides.length > 0) {
@@ -93,8 +90,8 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
     const bannerIds = user.overrides
       .filter((o) => o.resourceType === "banner")
       .map((o) => o.resourceId);
-    const legalIds = user.overrides
-      .filter((o) => o.resourceType === "legal_text")
+    const disclaimerIds = user.overrides
+      .filter((o) => o.resourceType === "disclaimer")
       .map((o) => o.resourceId);
     // Single-slot resources: an override can only name one of each.
     const registrationId = user.overrides.find(
@@ -104,7 +101,7 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
       (o) => o.resourceType === "footer_line"
     )?.resourceId;
 
-    const [certifications, banners, legalTexts, registrationLine, footerLine] = await Promise.all([
+    const [certifications, banners, disclaimers, registrationLine, footerLine] = await Promise.all([
       prisma.certification.findMany({
         where: { id: { in: certIds }, isActive: true },
         select: { id: true, name: true, image: true, alt: true },
@@ -115,8 +112,8 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
         select: { id: true, name: true, image: true, alt: true, link: true },
         orderBy: { sortOrder: "asc" },
       }),
-      prisma.legalText.findMany({
-        where: { id: { in: legalIds }, isActive: true },
+      prisma.disclaimer.findMany({
+        where: { id: { in: disclaimerIds }, isActive: true },
         select: { id: true, name: true, content: true },
         orderBy: { sortOrder: "asc" },
       }),
@@ -134,14 +131,13 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
         : Promise.resolve(null),
     ]);
 
-    const countryBranding = await countryBrandingPromise;
     return {
       certifications,
       banners,
-      legalTexts,
+      disclaimers,
       registrationLine,
       footerLine,
-      countryBranding,
+      countryBranding: DEFAULT_BRANDING,
       isOverridden: true,
       matchedRules: [],
     };
@@ -183,7 +179,7 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
   // Deduplicate by resourceType + resourceId
   const certIdSet = new Set<string>();
   const bannerIdSet = new Set<string>();
-  const legalIdSet = new Set<string>();
+  const disclaimerIdSet = new Set<string>();
   // Single-slot resources are collected rather than deduped, so the most
   // specific matching rule can be chosen below.
   const registrationCandidates: typeof assignments = [];
@@ -200,7 +196,7 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
 
     if (a.resourceType === "certification") certIdSet.add(a.resourceId);
     else if (a.resourceType === "banner") bannerIdSet.add(a.resourceId);
-    else if (a.resourceType === "legal_text") legalIdSet.add(a.resourceId);
+    else if (a.resourceType === "disclaimer") disclaimerIdSet.add(a.resourceId);
     else if (a.resourceType === "registration_line") registrationCandidates.push(a);
     else if (a.resourceType === "footer_line") footerCandidates.push(a);
   }
@@ -208,7 +204,7 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
   const registrationId = pickMostSpecific(registrationCandidates);
   const footerId = pickMostSpecific(footerCandidates);
 
-  const [certifications, banners, legalTexts, registrationLine, footerLine] = await Promise.all([
+  const [certifications, banners, disclaimers, registrationLine, footerLine] = await Promise.all([
     certIdSet.size > 0
       ? prisma.certification.findMany({
           where: { id: { in: [...certIdSet] }, isActive: true },
@@ -238,9 +234,9 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
           orderBy: { sortOrder: "asc" },
         })
       : Promise.resolve([]),
-    legalIdSet.size > 0
-      ? prisma.legalText.findMany({
-          where: { id: { in: [...legalIdSet] }, isActive: true },
+    disclaimerIdSet.size > 0
+      ? prisma.disclaimer.findMany({
+          where: { id: { in: [...disclaimerIdSet] }, isActive: true },
           select: { id: true, name: true, content: true },
           orderBy: { sortOrder: "asc" },
         })
@@ -259,30 +255,26 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
       : Promise.resolve(null),
   ]);
 
-  const countryBranding = await countryBrandingPromise;
   return {
     certifications,
     banners,
-    legalTexts,
+    disclaimers,
     registrationLine,
     footerLine,
-    countryBranding,
+    countryBranding: DEFAULT_BRANDING,
     isOverridden: false,
     matchedRules,
   };
 }
 
+/**
+ * Fallback branding, used unless the user's own companyName is set in Graph.
+ *
+ * Per-country company name and website previously came from a country_config
+ * table. That is now covered by the Footer Line resource, which carries the
+ * website and is assignable by country, so the table was removed.
+ */
 const DEFAULT_BRANDING: CountryBranding = {
   companyName: "Blackstone Shipping Private Limited",
   website: "https://blackstoneshipping.com",
 };
-
-async function resolveCountryBranding(country: string | null): Promise<CountryBranding> {
-  if (!country) return DEFAULT_BRANDING;
-  const config = await prisma.countryConfig.findUnique({ where: { country } });
-  if (!config) return DEFAULT_BRANDING;
-  return {
-    companyName: config.companyName,
-    website: config.website ?? DEFAULT_BRANDING.website,
-  };
-}

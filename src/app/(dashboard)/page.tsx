@@ -10,17 +10,17 @@ import { LocaleDate, LocaleDatetime } from "@/components/locale-date";
 export default async function DashboardPage() {
   const session = await auth();
 
-  const [syncMeta, recentActivity, userCount, certCount, bannerCount, legalCount] =
+  const [syncMeta, recentActivity, userCount, certCount, bannerCount, disclaimerCount] =
     await Promise.all([
       prisma.syncMeta.findUnique({ where: { syncType: "users" } }),
       getRecentActivity(5),
       prisma.msUser.count(),
       prisma.certification.count(),
       prisma.banner.count(),
-      prisma.legalText.count(),
+      prisma.disclaimer.count(),
     ]);
 
-  const resourceCount = certCount + bannerCount + legalCount;
+  const resourceCount = certCount + bannerCount + disclaimerCount;
 
   const lastSync = syncMeta?.lastSync ?? null;
 
@@ -51,7 +51,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{resourceCount}</p>
-            <p className="text-xs text-muted-foreground">{certCount} certs, {bannerCount} banners, {legalCount} legal</p>
+            <p className="text-xs text-muted-foreground">{certCount} certs, {bannerCount} banners, {disclaimerCount} disclaimers</p>
           </CardContent>
         </Card>
         <Card>

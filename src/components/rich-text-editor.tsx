@@ -31,8 +31,10 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
     },
     editorProps: {
       attributes: {
+        // break-words / [overflow-wrap:anywhere] stop a long pasted URL from
+        // forcing the editor — and the dialog around it — wider than its box.
         class:
-          "prose prose-sm dark:prose-invert max-w-none min-h-[120px] px-3 py-2 focus:outline-none",
+          "prose prose-sm dark:prose-invert max-w-none min-h-[120px] px-3 py-2 focus:outline-none break-words [overflow-wrap:anywhere]",
       },
     },
   });
@@ -55,8 +57,10 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
   if (!editor) return null;
 
   return (
-    <div className="rounded-md border border-input">
-      <div className="flex items-center gap-0.5 border-b border-input px-2 py-1">
+    // min-w-0 lets the editor shrink inside a flex/grid parent instead of
+    // pushing past it; overflow-hidden keeps the toolbar corners clipped.
+    <div className="min-w-0 overflow-hidden rounded-md border border-input">
+      <div className="flex flex-wrap items-center gap-0.5 border-b border-input px-2 py-1">
         <Button
           type="button"
           variant="ghost"
@@ -139,7 +143,11 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
           </Button>
         </div>
       </div>
-      <EditorContent editor={editor} />
+      {/* Caps growth so a long disclaimer scrolls inside the editor rather than
+          stretching the dialog past the viewport. */}
+      <div className="max-h-[45vh] overflow-y-auto">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }

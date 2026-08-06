@@ -26,7 +26,7 @@ export default async function ActivityPage(props: {
     { value: "users", label: "Users" },
     { value: "certification", label: "Certifications" },
     { value: "banner", label: "Banners" },
-    { value: "legal_text", label: "Legal Texts" },
+    { value: "disclaimer", label: "Disclaimers" },
     { value: "assignment", label: "Assignments" },
   ];
 

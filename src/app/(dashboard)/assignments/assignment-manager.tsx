@@ -38,7 +38,7 @@ interface Props {
   assignments: Assignment[];
   certifications: Resource[];
   banners: Resource[];
-  legalTexts: Resource[];
+  disclaimers: Resource[];
   registrationLines: Resource[];
   footerLines: Resource[];
   countries: string[];
@@ -69,7 +69,7 @@ const SCOPE_LABELS: Record<string, string> = {
 const RESOURCE_LABELS: Record<string, string> = {
   certification: "Certification",
   banner: "Banner",
-  legal_text: "Legal Text",
+  disclaimer: "Disclaimer",
   registration_line: "Registration Line",
   footer_line: "Footer Line",
 };
@@ -83,7 +83,7 @@ export function AssignmentManager({
   assignments,
   certifications,
   banners,
-  legalTexts,
+  disclaimers,
   registrationLines,
   footerLines,
   countries,
@@ -103,7 +103,7 @@ export function AssignmentManager({
   const RESOURCE_LISTS: Record<string, Resource[]> = {
     certification: certifications,
     banner: banners,
-    legal_text: legalTexts,
+    disclaimer: disclaimers,
     registration_line: registrationLines,
     footer_line: footerLines,
   };
@@ -289,7 +289,7 @@ export function AssignmentManager({
                   <SelectContent position="popper">
                     <SelectItem value="certification">Certification</SelectItem>
                     <SelectItem value="banner">Banner</SelectItem>
-                    <SelectItem value="legal_text">Legal Text</SelectItem>
+                    <SelectItem value="disclaimer">Disclaimer</SelectItem>
                     <SelectItem value="registration_line">Registration Line</SelectItem>
                     <SelectItem value="footer_line">Footer Line</SelectItem>
                   </SelectContent>

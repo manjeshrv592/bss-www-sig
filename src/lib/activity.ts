@@ -14,12 +14,15 @@ interface LogActivityParams {
 }
 
 export async function logActivity(params: LogActivityParams) {
-  const session = await auth();
-  const userId = session?.user?.id;
-
-  if (!userId) return null;
-
   try {
+    // auth() reads request headers, so it throws when an action is invoked
+    // outside a request — from a script or a scheduled job, for instance.
+    // Auditing must not decide whether those callers work.
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    if (!userId) return null;
+
     return await prisma.activityLog.create({
       data: {
         userId,

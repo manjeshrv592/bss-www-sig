@@ -25,7 +25,7 @@ interface Plan {
   generatedAt: string;
   rows: { label: string; scope: string; scopeValue: string | null; certificateCount: number }[];
   certifications: { name: string; file: string }[];
-  legalTexts: { name: string; content: string }[];
+  disclaimers: { name: string; content: string }[];
   registrationLines: { name: string; text: string }[];
   assignments: {
     scope: string;
@@ -54,7 +54,7 @@ async function main() {
     );
   }
   console.log(`\ncertifications : ${plan.certifications.length}`);
-  console.log(`legal texts    : ${plan.legalTexts.length}`);
+  console.log(`legal texts    : ${plan.disclaimers.length}`);
   console.log(`registration   : ${plan.registrationLines.length}`);
   console.log(`assignments    : ${plan.assignments.length}`);
 
@@ -101,13 +101,13 @@ async function main() {
     certIds.set(c.name, rec.id);
   }
 
-  const legalIds = new Map<string, string>();
-  for (const l of plan.legalTexts) {
-    const existing = await prisma.legalText.findFirst({ where: { name: l.name } });
+  const disclaimerIds = new Map<string, string>();
+  for (const l of plan.disclaimers) {
+    const existing = await prisma.disclaimer.findFirst({ where: { name: l.name } });
     const rec = existing
-      ? await prisma.legalText.update({ where: { id: existing.id }, data: { content: l.content } })
-      : await prisma.legalText.create({ data: { name: l.name, content: l.content } });
-    legalIds.set(l.name, rec.id);
+      ? await prisma.disclaimer.update({ where: { id: existing.id }, data: { content: l.content } })
+      : await prisma.disclaimer.create({ data: { name: l.name, content: l.content } });
+    disclaimerIds.set(l.name, rec.id);
   }
 
   const regIds = new Map<string, string>();
@@ -122,8 +122,8 @@ async function main() {
   const idFor = (type: string, name: string) =>
     type === "certification"
       ? certIds.get(name)
-      : type === "legal_text"
-        ? legalIds.get(name)
+      : type === "disclaimer"
+        ? disclaimerIds.get(name)
         : regIds.get(name);
 
   let created = 0;
@@ -154,7 +154,7 @@ async function main() {
     }
   }
 
-  console.log(`\nwrote certifications:${certIds.size} legal:${legalIds.size} registration:${regIds.size}`);
+  console.log(`\nwrote certifications:${certIds.size} legal:${disclaimerIds.size} registration:${regIds.size}`);
   console.log(`assignments: ${created} created, ${plan.assignments.length - created} already present`);
   console.log("\nDone.");
 }

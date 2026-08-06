@@ -16,7 +16,7 @@ import {
   createBanner,
   updateBanner,
   deleteBanner,
-  reorderBanners,
+  moveBanner,
 } from "@/lib/actions/resources";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { OrderCell } from "@/components/order-cell";
@@ -38,17 +38,27 @@ function formatDate(d: Date | null) {
   return new Date(d).toISOString().split("T")[0];
 }
 
-export function BannerList({ banners }: { banners: Banner[] }) {
+export function BannerList({
+  banners,
+  offset,
+  total,
+}: {
+  banners: Banner[];
+  offset: number;
+  total: number;
+}) {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<Banner | null>(null);
   const [clearDates, setClearDates] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const { items, getRowProps, rowStateClass, getHandleProps } = useDragOrder(
-    banners,
-    reorderBanners
-  );
+  const { items, getRowProps, rowStateClass, getHandleProps, moveTo } = useDragOrder({
+    items: banners,
+    offset,
+    total,
+    move: moveBanner,
+  });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -243,7 +253,12 @@ export function BannerList({ banners }: { banners: Banner[] }) {
                       !banner.isActive ? "opacity-50" : ""
                     } ${rowStateClass(index)}`}
                   >
-                    <OrderCell index={index} handleProps={getHandleProps(index, banner.name)} />
+                    <OrderCell
+                      index={offset + index}
+                      total={total}
+                      handleProps={getHandleProps(index, banner.name)}
+                      onMoveTo={(to) => moveTo(banner.id, to)}
+                    />
                     <td className="px-4 py-3">
                       {banner.image ? (
                         <img src={banner.image} alt={banner.alt ?? banner.name} className="h-8 w-16 rounded object-cover" />
