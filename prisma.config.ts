@@ -9,6 +9,14 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // CLI-only — the app itself connects through src/lib/prisma.ts.
+    //
+    // Migrations take a session-level advisory lock, which a transaction-mode
+    // pooler can't hold: the lock and the statements after it may land on
+    // different backends, so `prisma migrate deploy` waits out its 10s timeout
+    // and fails with P1002. Neon's pooled endpoint is exactly that, and it is
+    // what DATABASE_URL points at because the serverless app needs it. Give the
+    // CLI the direct endpoint instead when one is configured.
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
   },
 });
