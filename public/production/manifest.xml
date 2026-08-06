@@ -7,7 +7,7 @@
 
   <!-- Basic Settings -->
   <Id>b94f9d12-3e76-4c95-8b01-2a73f5c4e8d1</Id>
-  <Version>1.0.6.0</Version>
+  <Version>1.0.7.0</Version>
   <ProviderName>Blackstone Shipping</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="BSS Signature"/>
@@ -61,8 +61,11 @@
         <Host xsi:type="MailHost">
 
           <Runtimes>
+            <!-- Runtime resid (HTML) = browser runtime used by Outlook on the web and new Outlook on Windows.
+                 Override type="javascript" (JS file) = JavaScript-only runtime used by classic Outlook on Windows.
+                 These MUST point to different files: classic Outlook executes the Override resid AS JavaScript. -->
             <Runtime resid="commandsUrl">
-              <Override type="javascript" resid="commandsUrl"/>
+              <Override type="javascript" resid="commandsJsUrl"/>
             </Runtime>
           </Runtimes>
 
@@ -73,22 +76,6 @@
               <OfficeTab id="TabDefault">
                 <Group id="bssSignatureGroup">
                   <Label resid="groupLabel"/>
-
-                  <Control xsi:type="Button" id="btnTaskpane">
-                    <Label resid="taskpaneLabel"/>
-                    <Supertip>
-                      <Title resid="taskpaneLabel"/>
-                      <Description resid="taskpaneDesc"/>
-                    </Supertip>
-                    <Icon>
-                      <bt:Image size="16" resid="icon16"/>
-                      <bt:Image size="32" resid="icon32"/>
-                      <bt:Image size="80" resid="icon80"/>
-                    </Icon>
-                    <Action xsi:type="ShowTaskpane">
-                      <SourceLocation resid="taskpaneUrl"/>
-                    </Action>
-                  </Control>
 
                   <Control xsi:type="Button" id="btnInsertSignature">
                     <Label resid="insertLabel"/>
@@ -101,8 +88,8 @@
                       <bt:Image size="32" resid="icon32"/>
                       <bt:Image size="80" resid="icon80"/>
                     </Icon>
-                    <Action xsi:type="ExecuteFunction">
-                      <FunctionName>insertSignature</FunctionName>
+                    <Action xsi:type="ShowTaskpane">
+                      <SourceLocation resid="taskpaneUrl"/>
                     </Action>
                   </Control>
 
@@ -129,15 +116,14 @@
         </bt:Images>
         <bt:Urls>
           <bt:Url id="commandsUrl" DefaultValue="https://blackstone.simtechitsolutions.in/commands.html"/>
+          <bt:Url id="commandsJsUrl" DefaultValue="https://blackstone.simtechitsolutions.in/commands.js"/>
           <bt:Url id="taskpaneUrl" DefaultValue="https://blackstone.simtechitsolutions.in/taskpane.html"/>
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="groupLabel" DefaultValue="BSS Signature"/>
-          <bt:String id="taskpaneLabel" DefaultValue="Sign In"/>
           <bt:String id="insertLabel" DefaultValue="Insert Signature"/>
         </bt:ShortStrings>
         <bt:LongStrings>
-          <bt:String id="taskpaneDesc" DefaultValue="Sign in to authenticate before inserting your signature."/>
           <bt:String id="insertDesc" DefaultValue="Insert your BSS email signature"/>
         </bt:LongStrings>
       </Resources>
