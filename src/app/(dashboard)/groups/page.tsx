@@ -7,7 +7,7 @@ import { SyncGroupsButton } from "./sync-groups-button";
 import { GroupSearch } from "./group-search";
 import { LocaleDate } from "@/components/locale-date";
 
-const PER_PAGE = 25;
+const PER_PAGE = 10;
 
 export default async function GroupsPage(props: {
   searchParams: Promise<{ q?: string; page?: string }>;

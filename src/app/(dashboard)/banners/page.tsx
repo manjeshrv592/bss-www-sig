@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { BannerList } from "./banner-list";
 import { Pagination } from "@/components/pagination";
 
-const PER_PAGE = 15;
+const PER_PAGE = 10;
 
 export default async function Page(props: {
   searchParams: Promise<{ page?: string }>;

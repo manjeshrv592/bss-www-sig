@@ -24,8 +24,19 @@ export default async function UserProfilePage(props: {
 }) {
   const { id } = await props.params;
 
-  const [user, signature, allCerts, allBanners, allDisclaimers, allRegistration, allFooter] =
-    await Promise.all([
+  // One round trip: nothing here depends on another query's result, so the
+  // overrides and group names are fetched alongside rather than after.
+  const [
+    user,
+    signature,
+    allCerts,
+    allBanners,
+    allDisclaimers,
+    allRegistration,
+    allFooter,
+    overrides,
+    groupsMap,
+  ] = await Promise.all([
     prisma.msUser.findUnique({ where: { id } }),
     resolveSignature(id),
     prisma.certification.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
@@ -33,13 +44,11 @@ export default async function UserProfilePage(props: {
     prisma.disclaimer.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.registrationLine.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.footerLine.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-  ]);
-  if (!user) notFound();
-
-  const [overrides, groupsMap] = await Promise.all([
     prisma.userOverride.findMany({ where: { msUserId: id } }),
     prisma.msGroup.findMany({ select: { id: true, displayName: true } }),
   ]);
+  if (!user) notFound();
+
   const groupNameMap = new Map(groupsMap.map((g) => [g.id, g.displayName]));
 
   // Prefer first name + last name. The Microsoft displayName often includes a

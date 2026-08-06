@@ -64,7 +64,7 @@ interface GetActivityLogParams {
 
 export async function getActivityLog({
   page = 1,
-  perPage = 20,
+  perPage = 10,
   entity,
   action,
 }: GetActivityLogParams = {}) {
@@ -72,26 +72,30 @@ export async function getActivityLog({
   if (entity) where.entity = entity;
   if (action) where.action = { contains: action, mode: "insensitive" };
 
-  const [items, total] = await Promise.all([
-    prisma.activityLog.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * perPage,
-      take: perPage,
-      include: {
-        user: {
-          select: { name: true, email: true },
-        },
+  // Count first so the page can be clamped here. Callers would otherwise have
+  // to call this twice — once to learn the total, once for the right page —
+  // running the expensive findMany a second time and discarding the first.
+  const total = await prisma.activityLog.count({ where });
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const safePage = Math.min(Math.max(page, 1), totalPages);
+
+  const items = await prisma.activityLog.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    skip: (safePage - 1) * perPage,
+    take: perPage,
+    include: {
+      user: {
+        select: { name: true, email: true },
       },
-    }),
-    prisma.activityLog.count({ where }),
-  ]);
+    },
+  });
 
   return {
     items,
     total,
-    page,
+    page: safePage,
     perPage,
-    totalPages: Math.ceil(total / perPage),
+    totalPages,
   };
 }

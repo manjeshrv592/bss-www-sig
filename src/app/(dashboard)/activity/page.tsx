@@ -1,34 +1,52 @@
 import { getActivityLog } from "@/lib/activity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Activity, ChevronLeft, ChevronRight } from "lucide-react";
+import { Activity } from "lucide-react";
 import Link from "next/link";
 import { LocaleDatetime } from "@/components/locale-date";
+import { Pagination } from "@/components/pagination";
+
+const PER_PAGE = 10;
+
+// Must match the `entity` values passed to logActivity, or a filter silently
+// matches nothing.
+const entityTypes = [
+  { value: "", label: "All" },
+  { value: "users", label: "Users" },
+  { value: "groups", label: "Groups" },
+  { value: "shared_mailbox", label: "Shared Mailboxes" },
+  { value: "certification", label: "Certifications" },
+  { value: "banner", label: "Banners" },
+  { value: "disclaimer", label: "Disclaimers" },
+  { value: "registration_line", label: "Registration Lines" },
+  { value: "footer_line", label: "Footer Lines" },
+  { value: "assignment", label: "Assignments" },
+  { value: "user_override", label: "User Overrides" },
+];
 
 export default async function ActivityPage(props: {
   searchParams: Promise<{ page?: string; entity?: string; action?: string }>;
 }) {
   const searchParams = await props.searchParams;
-  const page = Number(searchParams.page) || 1;
   const entity = searchParams.entity || undefined;
   const action = searchParams.action || undefined;
 
-  const { items, total, totalPages } = await getActivityLog({
-    page,
-    perPage: 20,
+  // getActivityLog clamps the page itself, so changing a filter while deep in
+  // the pages cannot land on one that no longer exists and render as empty.
+  const { items, total, totalPages, page } = await getActivityLog({
+    page: Number(searchParams.page) || 1,
+    perPage: PER_PAGE,
     entity,
     action,
   });
 
-  const entityTypes = [
-    { value: "", label: "All" },
-    { value: "system", label: "System" },
-    { value: "users", label: "Users" },
-    { value: "certification", label: "Certifications" },
-    { value: "banner", label: "Banners" },
-    { value: "disclaimer", label: "Disclaimers" },
-    { value: "assignment", label: "Assignments" },
-  ];
+  // Carried through page links so paging never silently drops a filter.
+  const extraParams = [
+    entity ? `entity=${encodeURIComponent(entity)}` : "",
+    action ? `action=${encodeURIComponent(action)}` : "",
+  ]
+    .filter(Boolean)
+    .join("&");
 
   return (
     <div className="space-y-6">
@@ -39,20 +57,17 @@ export default async function ActivityPage(props: {
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {entityTypes.map((type) => (
           <Link
             key={type.value}
-            href={
-              type.value
-                ? `/activity?entity=${type.value}`
-                : "/activity"
-            }
+            // Changing a filter returns to page 1 — the old page number would
+            // rarely exist in the new, smaller result set.
+            href={type.value ? `/activity?entity=${type.value}` : "/activity"}
           >
             <Button
               variant={entity === type.value || (!entity && !type.value) ? "default" : "outline"}
               size="sm"
-              className="text-xs"
             >
               {type.label}
             </Button>
@@ -99,37 +114,15 @@ export default async function ActivityPage(props: {
             </div>
           )}
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-6">
-              <p className="text-xs text-muted-foreground">
-                Page {page} of {totalPages}
-              </p>
-              <div className="flex items-center gap-2">
-                {page > 1 && (
-                  <Link
-                    href={`/activity?page=${page - 1}${entity ? `&entity=${entity}` : ""}`}
-                  >
-                    <Button variant="outline" size="sm" className="h-8 gap-1">
-                      <ChevronLeft className="h-3 w-3" />
-                      Previous
-                    </Button>
-                  </Link>
-                )}
-                {page < totalPages && (
-                  <Link
-                    href={`/activity?page=${page + 1}${entity ? `&entity=${entity}` : ""}`}
-                  >
-                    <Button variant="outline" size="sm" className="h-8 gap-1">
-                      Next
-                      <ChevronRight className="h-3 w-3" />
-                    </Button>
-                  </Link>
-                )}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        basePath="/activity"
+        extraParams={extraParams}
+      />
     </div>
   );
 }
