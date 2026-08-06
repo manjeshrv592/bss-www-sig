@@ -4,6 +4,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Sidebar group open/close. The collapsible-down / collapsible-up keyframes
+   come from tw-animate-css and animate height to
+   --radix-collapsible-content-height, the measured height Radix publishes —
+   height:auto is not animatable. Only the timing is overridden here; the
+   defaults are slower than a nav menu wants. */
+@theme {
+  --animate-collapsible-down: collapsible-down 180ms ease-out;
+  --animate-collapsible-up: collapsible-up 150ms ease-in;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
