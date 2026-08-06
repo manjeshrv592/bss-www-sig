@@ -36,10 +36,6 @@ var SKIP_AUTH = false;
  */
 var SIGNATURE_MARKER = "bss-signature-block";
 
-function wrapSignature(html) {
-  return '<div id="' + SIGNATURE_MARKER + '">' + html + "</div>";
-}
-
 /**
  * Read the sending address off the compose item. For a shared mailbox this is
  * the same for everyone, so on its own it can't identify the sender.
@@ -232,44 +228,37 @@ function setBodyHtml(html) {
   });
 }
 
-function insertAtCursor(html) {
-  return new Promise(function (resolve, reject) {
-    Office.context.mailbox.item.body.setSelectedDataAsync(
-      html,
-      { coercionType: Office.CoercionType.Html },
-      function (result) {
-        if (result.status === Office.AsyncResultStatus.Succeeded) {
-          resolve();
-        } else {
-          reject(new Error(result.error && result.error.message));
-        }
-      }
-    );
-  });
-}
-
 /**
  * Put the signature in the message, replacing one we put there earlier.
  *
- * setSignatureAsync would replace on its own, but Office caps its data at
- * 30,000 characters and a signature carrying base64 images runs several times
- * that, so it isn't available to us. Instead every insert is wrapped in
- * SIGNATURE_MARKER: the first one goes in at the cursor, and a later one finds
- * that wrapper, drops it, and rewrites the body. Rewriting only happens on a
- * correction, so a first insert never disturbs what has been typed.
+ * This reads the body, edits it, and writes the whole thing back, rather than
+ * inserting at the cursor. The pane has focus while the picker is open, so
+ * there is no cursor in the message to insert at -- setSelectedDataAsync
+ * reported success and the signature went nowhere visible. Rewriting the body
+ * does not depend on where focus is.
+ *
+ * setSignatureAsync would handle replacement natively, but Office caps its
+ * data at 30,000 characters and a signature carrying base64 images runs
+ * several times that, so it is not available to us. The marked wrapper is what
+ * makes a second pick replace the first instead of stacking under it.
  */
 async function putSignature(html) {
-  var body = await getBodyHtml();
-  var doc = new DOMParser().parseFromString(body, "text/html");
+  var doc = new DOMParser().parseFromString(await getBodyHtml(), "text/html");
   var existing = doc.getElementById(SIGNATURE_MARKER);
 
-  if (!existing) {
-    await insertAtCursor(wrapSignature(html));
-    return;
+  if (existing) {
+    existing.innerHTML = html;
+  } else {
+    var block = doc.createElement("div");
+    block.id = SIGNATURE_MARKER;
+    block.innerHTML = html;
+    doc.body.appendChild(block);
   }
 
-  existing.innerHTML = html;
-  await setBodyHtml(doc.body.innerHTML);
+  // Serialise the whole document, not doc.body.innerHTML: Outlook returns the
+  // body wrapped in <html><head><style>, and dropping that head strips the
+  // message its own formatting.
+  await setBodyHtml(doc.documentElement.outerHTML);
 }
 
 /**
@@ -302,7 +291,10 @@ async function applySignature(html, appliedFor) {
   try {
     await putSignature(html);
     setStatus("success", "Signature applied for " + appliedFor + ".");
-    closePane();
+    // Closing tears down this runtime, so give Outlook a moment to finish
+    // committing the write and leave the confirmation on screen long enough
+    // to register.
+    setTimeout(closePane, 600);
   } catch (err) {
     console.error("Signature insert error:", err);
     setStatus("error", "Failed to apply: " + (err.message || "Unknown error"));
