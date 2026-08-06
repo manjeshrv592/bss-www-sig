@@ -30,9 +30,9 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  // scripts/ holds standalone Node tooling run with tsx, not app code. It is
-  // excluded so `next build` does not type-check it — those scripts import
-  // devDependencies (xlsx), which a production install omits, and the build
-  // would fail on the missing module.
+  // scripts/ is reserved for standalone Node tooling run with tsx, not app
+  // code. Excluding it keeps `next build` from type-checking scripts that
+  // import devDependencies, which a production install omits — the build would
+  // then fail on the missing module.
   "exclude": ["node_modules", "scripts"]
 }

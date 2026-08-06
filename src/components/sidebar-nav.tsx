@@ -76,14 +76,14 @@ export function SidebarNav() {
     );
 
   // Children carry no icon — the group heading already says what they are, and
-  // a column of icons at this depth reads as clutter. The indent and the active
-  // bar do the work instead.
+  // a column of icons at this depth reads as clutter. The indent, the active
+  // background and a lighter resting colour carry the hierarchy instead.
   const childClass = (href: string) =>
     cn(
       "block rounded-md py-2 pr-3 pl-10 text-sm transition-colors",
       isActive(href)
         ? "bg-accent text-accent-foreground font-medium"
-        : "text-secondary-foreground hover:bg-accent hover:text-accent-foreground"
+        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
     );
 
   return (

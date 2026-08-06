@@ -269,10 +269,8 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
 
 /**
  * Fallback branding, used unless the user's own companyName is set in Graph.
- *
- * Per-country company name and website previously came from a country_config
- * table. That is now covered by the Footer Line resource, which carries the
- * website and is assignable by country, so the table was removed.
+ * Per-country websites come from the Footer Line resource, which is assignable
+ * by country.
  */
 const DEFAULT_BRANDING: CountryBranding = {
   companyName: "Blackstone Shipping Private Limited",
