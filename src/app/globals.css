@@ -59,14 +59,16 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  /* Canvas is a touch off-white so white cards read as raised against it —
+     pure-white-on-pure-white gives soft shadows nothing to sit on. */
+  --background: oklch(0.979 0.002 247);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: #2a78d6;
+  --primary-foreground: #ffffff;
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -85,7 +87,7 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.875rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -97,14 +99,14 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: oklch(0.155 0.003 247);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.21 0.003 247);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: #3987e5;
+  --primary-foreground: #ffffff;
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -130,6 +132,55 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ─── Soft UI ──────────────────────────────────────────────────────────────
+   Every soft surface, shadow and gradient in the app resolves to a token here,
+   so the look is tuned in one place rather than per component.
+
+   Light and dark are tuned separately on purpose: a drop shadow is nearly
+   invisible against a dark surface, so dark mode leans on deeper shadows plus a
+   1px top highlight to give the same lifted feel.
+   ------------------------------------------------------------------------- */
+:root {
+  /* Layered, low-opacity shadows — diffused rather than a hard drop. */
+  --shadow-soft-xs: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.04);
+  --shadow-soft-sm: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 10px rgb(16 24 40 / 0.05);
+  --shadow-soft-md: 0 2px 4px rgb(16 24 40 / 0.03), 0 10px 24px rgb(16 24 40 / 0.07);
+  --shadow-soft-lg: 0 4px 8px rgb(16 24 40 / 0.04), 0 20px 48px rgb(16 24 40 / 0.10);
+  /* Sits on interactive surfaces to suggest a raised edge. */
+  --highlight-top: inset 0 1px 0 rgb(255 255 255 / 0.6);
+
+  --gradient-surface: linear-gradient(180deg, #ffffff 0%, #fbfbfd 100%);
+  --gradient-raised: linear-gradient(180deg, #ffffff 0%, #f6f7fa 100%);
+  --gradient-primary: linear-gradient(310deg, #1c5cab 0%, #3987e5 100%);
+  --gradient-accent-soft: linear-gradient(180deg, rgb(42 120 214 / 0.10) 0%, rgb(42 120 214 / 0.04) 100%);
+}
+
+.dark {
+  --shadow-soft-xs: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-soft-sm: 0 1px 3px rgb(0 0 0 / 0.4), 0 4px 10px rgb(0 0 0 / 0.3);
+  --shadow-soft-md: 0 4px 10px rgb(0 0 0 / 0.45), 0 12px 28px rgb(0 0 0 / 0.35);
+  --shadow-soft-lg: 0 8px 20px rgb(0 0 0 / 0.5), 0 24px 56px rgb(0 0 0 / 0.45);
+  --highlight-top: inset 0 1px 0 rgb(255 255 255 / 0.06);
+
+  --gradient-surface: linear-gradient(180deg, oklch(0.225 0 0) 0%, oklch(0.2 0 0) 100%);
+  --gradient-raised: linear-gradient(180deg, oklch(0.245 0 0) 0%, oklch(0.215 0 0) 100%);
+  --gradient-primary: linear-gradient(310deg, #1c5cab 0%, #4f9bf0 100%);
+  --gradient-accent-soft: linear-gradient(180deg, rgb(57 135 229 / 0.18) 0%, rgb(57 135 229 / 0.06) 100%);
+}
+
+/* Exposed to Tailwind so components use shadow-soft-md / bg-gradient-surface
+   instead of repeating raw var() calls. */
+@theme inline {
+  --shadow-soft-xs: var(--shadow-soft-xs);
+  --shadow-soft-sm: var(--shadow-soft-sm);
+  --shadow-soft-md: var(--shadow-soft-md);
+  --shadow-soft-lg: var(--shadow-soft-lg);
+  --background-image-gradient-surface: var(--gradient-surface);
+  --background-image-gradient-raised: var(--gradient-raised);
+  --background-image-gradient-primary: var(--gradient-primary);
+  --background-image-gradient-accent-soft: var(--gradient-accent-soft);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -139,5 +190,16 @@
   }
   html {
     @apply font-sans;
+  }
+  /* Respect a user's reduced-motion preference for every animation added for
+     the soft-UI pass — micro-interactions are decoration, not information. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

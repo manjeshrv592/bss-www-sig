@@ -14,6 +14,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Loader2, Globe, MapPin, Map, Building2, Briefcase, Users } from "lucide-react";
 import { createAssignment, deleteAssignment } from "@/lib/actions/assignments";
+import { useUndoableDelete } from "@/lib/use-undoable-delete";
+import { AnimatedTableBody, AnimatedTableRow } from "@/components/animated-table-row";
 
 interface Assignment {
   id: string;
@@ -100,6 +102,8 @@ export function AssignmentManager({
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
+  const { isPendingDelete, requestDelete } = useUndoableDelete({ onDelete: deleteAssignment });
+
   const RESOURCE_LISTS: Record<string, Resource[]> = {
     certification: certifications,
     banner: banners,
@@ -130,14 +134,6 @@ export function AssignmentManager({
       setOpen(false);
       setResourceId("");
       setScopeValue("");
-      router.refresh();
-    });
-  };
-
-  const handleDelete = (id: string) => {
-    if (!confirm("Remove this assignment?")) return;
-    startTransition(async () => {
-      await deleteAssignment(id);
       router.refresh();
     });
   };
@@ -370,9 +366,10 @@ export function AssignmentManager({
                         <th className="px-4 py-2 font-medium text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {group.items.map((a) => (
-                        <tr
+                    <AnimatedTableBody>
+                      {group.items.map((a) =>
+                        isPendingDelete(a.id) ? null : (
+                        <AnimatedTableRow
                           key={a.id}
                           className="border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors"
                         >
@@ -389,15 +386,16 @@ export function AssignmentManager({
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7 text-destructive"
-                              onClick={() => handleDelete(a.id)}
+                              onClick={() => requestDelete(a.id, getResourceName(a.resourceType, a.resourceId))}
                               disabled={isPending}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </td>
-                        </tr>
-                      ))}
-                    </tbody>
+                        </AnimatedTableRow>
+                        )
+                      )}
+                    </AnimatedTableBody>
                   </table>
                 </CardContent>
               </Card>

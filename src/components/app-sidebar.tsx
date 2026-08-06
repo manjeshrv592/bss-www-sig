@@ -16,8 +16,10 @@ export async function AppSidebar() {
     .toUpperCase()
     .slice(0, 2) ?? "AD";
 
+  // Same gradient + soft shadow as the cards, so the nav reads as one raised
+  // panel rather than a flat column beside them.
   return (
-    <aside className="flex h-screen w-64 flex-col border-r border-border bg-card">
+    <aside className="flex h-screen w-64 flex-col border-r border-border bg-card bg-gradient-surface shadow-soft-sm">
       <div className="flex h-14 items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground text-xs font-bold">

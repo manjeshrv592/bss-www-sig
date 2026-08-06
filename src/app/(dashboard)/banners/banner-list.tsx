@@ -19,6 +19,8 @@ import {
   moveBanner,
 } from "@/lib/actions/resources";
 import { useDragOrder } from "@/lib/use-drag-order";
+import { useUndoableDelete } from "@/lib/use-undoable-delete";
+import { AnimatedTableBody, AnimatedTableRow } from "@/components/animated-table-row";
 import { OrderCell } from "@/components/order-cell";
 
 interface Banner {
@@ -60,6 +62,8 @@ export function BannerList({
     move: moveBanner,
   });
 
+  const { isPendingDelete, requestDelete } = useUndoableDelete({ onDelete: deleteBanner });
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
@@ -84,14 +88,6 @@ export function BannerList({
       setOpen(false);
       setEditItem(null);
       setClearDates(false);
-      router.refresh();
-    });
-  };
-
-  const handleDelete = (id: string) => {
-    if (!confirm("Delete this banner?")) return;
-    startTransition(async () => {
-      await deleteBanner(id);
       router.refresh();
     });
   };
@@ -244,9 +240,10 @@ export function BannerList({
                   <th className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {items.map((banner, index) => (
-                  <tr
+              <AnimatedTableBody>
+                {items.map((banner, index) =>
+                  isPendingDelete(banner.id) ? null : (
+                  <AnimatedTableRow
                     key={banner.id}
                     {...getRowProps(index)}
                     className={`border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors ${
@@ -306,14 +303,15 @@ export function BannerList({
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditItem(banner); setOpen(true); }}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(banner.id)} disabled={isPending}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => requestDelete(banner.id, `"${banner.name}"`)} disabled={isPending}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </td>
-                  </tr>
-                ))}
-              </tbody>
+                  </AnimatedTableRow>
+                  )
+                )}
+              </AnimatedTableBody>
             </table>
           </CardContent>
         </Card>

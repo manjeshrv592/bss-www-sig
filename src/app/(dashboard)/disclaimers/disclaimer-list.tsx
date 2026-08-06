@@ -20,6 +20,8 @@ import {
 } from "@/lib/actions/resources";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { useDragOrder } from "@/lib/use-drag-order";
+import { useUndoableDelete } from "@/lib/use-undoable-delete";
+import { AnimatedTableBody, AnimatedTableRow } from "@/components/animated-table-row";
 import { OrderCell } from "@/components/order-cell";
 
 interface Disclaimer {
@@ -52,6 +54,8 @@ export function DisclaimerList({
     move: moveDisclaimer,
   });
 
+  const { isPendingDelete, requestDelete } = useUndoableDelete({ onDelete: deleteDisclaimer });
+
   const openCreate = () => {
     setEditItem(null);
     setContent("");
@@ -78,14 +82,6 @@ export function DisclaimerList({
       setOpen(false);
       setEditItem(null);
       setContent("");
-      router.refresh();
-    });
-  };
-
-  const handleDelete = (id: string) => {
-    if (!confirm("Delete this disclaimer?")) return;
-    startTransition(async () => {
-      await deleteDisclaimer(id);
       router.refresh();
     });
   };
@@ -175,9 +171,10 @@ export function DisclaimerList({
                   <th className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {items.map((item, index) => (
-                  <tr
+              <AnimatedTableBody>
+                {items.map((item, index) =>
+                  isPendingDelete(item.id) ? null : (
+                  <AnimatedTableRow
                     key={item.id}
                     {...getRowProps(index)}
                     className={`border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors ${
@@ -214,14 +211,15 @@ export function DisclaimerList({
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(item)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(item.id)} disabled={isPending}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => requestDelete(item.id, `"${item.name}"`)} disabled={isPending}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </td>
-                  </tr>
-                ))}
-              </tbody>
+                  </AnimatedTableRow>
+                  )
+                )}
+              </AnimatedTableBody>
             </table>
           </CardContent>
         </Card>

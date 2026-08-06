@@ -17,6 +17,8 @@ import {
   updateFooterLine,
   deleteFooterLine,
 } from "@/lib/actions/resources";
+import { useUndoableDelete } from "@/lib/use-undoable-delete";
+import { AnimatedTableBody, AnimatedTableRow } from "@/components/animated-table-row";
 
 interface FooterLine {
   id: string;
@@ -32,6 +34,8 @@ export function FooterLineList({ lines }: { lines: FooterLine[] }) {
   const [editItem, setEditItem] = useState<FooterLine | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  const { isPendingDelete, requestDelete } = useUndoableDelete({ onDelete: deleteFooterLine });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -49,14 +53,6 @@ export function FooterLineList({ lines }: { lines: FooterLine[] }) {
       }
       setOpen(false);
       setEditItem(null);
-      router.refresh();
-    });
-  };
-
-  const handleDelete = (id: string) => {
-    if (!confirm("Delete this footer line? Any rules using it are removed too.")) return;
-    startTransition(async () => {
-      await deleteFooterLine(id);
       router.refresh();
     });
   };
@@ -182,9 +178,10 @@ export function FooterLineList({ lines }: { lines: FooterLine[] }) {
                   <th className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {lines.map((line) => (
-                  <tr
+              <AnimatedTableBody>
+                {lines.map((line) =>
+                  isPendingDelete(line.id) ? null : (
+                  <AnimatedTableRow
                     key={line.id}
                     className={`border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors ${
                       !line.isActive ? "opacity-50" : ""
@@ -230,16 +227,17 @@ export function FooterLineList({ lines }: { lines: FooterLine[] }) {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-destructive"
-                          onClick={() => handleDelete(line.id)}
+                          onClick={() => requestDelete(line.id, `"${line.name}"`)}
                           disabled={isPending}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </td>
-                  </tr>
-                ))}
-              </tbody>
+                  </AnimatedTableRow>
+                  )
+                )}
+              </AnimatedTableBody>
             </table>
           </CardContent>
         </Card>
