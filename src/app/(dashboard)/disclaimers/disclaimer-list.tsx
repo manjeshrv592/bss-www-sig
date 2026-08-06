@@ -21,7 +21,11 @@ import {
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { useUndoableDelete } from "@/lib/use-undoable-delete";
-import { AnimatedTableBody, AnimatedTableRow } from "@/components/animated-table-row";
+import {
+  AnimatedTableBody,
+  AnimatedTableRow,
+  UndoDeleteRow,
+} from "@/components/animated-table-row";
 import { OrderCell } from "@/components/order-cell";
 
 interface Disclaimer {
@@ -54,7 +58,8 @@ export function DisclaimerList({
     move: moveDisclaimer,
   });
 
-  const { isPendingDelete, requestDelete } = useUndoableDelete({ onDelete: deleteDisclaimer });
+  const { isPendingDelete, secondsLeft, progress, requestDelete, undo } =
+    useUndoableDelete({ onDelete: deleteDisclaimer });
 
   const openCreate = () => {
     setEditItem(null);
@@ -173,7 +178,16 @@ export function DisclaimerList({
               </thead>
               <AnimatedTableBody>
                 {items.map((item, index) =>
-                  isPendingDelete(item.id) ? null : (
+                  isPendingDelete(item.id) ? (
+                    <UndoDeleteRow
+                      key={item.id}
+                      colSpan={5}
+                      label={item.name}
+                      secondsLeft={secondsLeft(item.id)}
+                      progress={progress(item.id)}
+                      onUndo={() => undo(item.id)}
+                    />
+                  ) : (
                   <AnimatedTableRow
                     key={item.id}
                     {...getRowProps(index)}
@@ -211,7 +225,7 @@ export function DisclaimerList({
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(item)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => requestDelete(item.id, `"${item.name}"`)} disabled={isPending}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => requestDelete(item.id)} disabled={isPending}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>

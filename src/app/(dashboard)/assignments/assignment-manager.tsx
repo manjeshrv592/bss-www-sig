@@ -15,7 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Loader2, Globe, MapPin, Map, Building2, Briefcase, Users } from "lucide-react";
 import { createAssignment, deleteAssignment } from "@/lib/actions/assignments";
 import { useUndoableDelete } from "@/lib/use-undoable-delete";
-import { AnimatedTableBody, AnimatedTableRow } from "@/components/animated-table-row";
+import {
+  AnimatedTableBody,
+  AnimatedTableRow,
+  UndoDeleteRow,
+} from "@/components/animated-table-row";
 
 interface Assignment {
   id: string;
@@ -102,7 +106,8 @@ export function AssignmentManager({
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const { isPendingDelete, requestDelete } = useUndoableDelete({ onDelete: deleteAssignment });
+  const { isPendingDelete, secondsLeft, progress, requestDelete, undo } =
+    useUndoableDelete({ onDelete: deleteAssignment });
 
   const RESOURCE_LISTS: Record<string, Resource[]> = {
     certification: certifications,
@@ -368,7 +373,16 @@ export function AssignmentManager({
                     </thead>
                     <AnimatedTableBody>
                       {group.items.map((a) =>
-                        isPendingDelete(a.id) ? null : (
+                        isPendingDelete(a.id) ? (
+                    <UndoDeleteRow
+                      key={a.id}
+                      colSpan={3}
+                      label={getResourceName(a.resourceType, a.resourceId)}
+                      secondsLeft={secondsLeft(a.id)}
+                      progress={progress(a.id)}
+                      onUndo={() => undo(a.id)}
+                    />
+                  ) : (
                         <AnimatedTableRow
                           key={a.id}
                           className="border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors"
@@ -386,7 +400,7 @@ export function AssignmentManager({
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7 text-destructive"
-                              onClick={() => requestDelete(a.id, getResourceName(a.resourceType, a.resourceId))}
+                              onClick={() => requestDelete(a.id)}
                               disabled={isPending}
                             >
                               <Trash2 className="h-3 w-3" />

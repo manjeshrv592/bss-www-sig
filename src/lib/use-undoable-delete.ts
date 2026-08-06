@@ -5,17 +5,19 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 const DEFAULT_DELAY_MS = 5000;
+/** Fast enough that the countdown never visibly skips a second. */
+const TICK_MS = 200;
 
 /**
  * Deletion with an undo window, replacing a blocking `confirm()`.
  *
- * The row disappears immediately and a toast offers Undo; the server action
- * only runs once that window closes. This is faster for the common case (the
- * user meant it) and more forgiving for the rare one, whereas a confirm dialog
- * taxes every deletion to guard against the mistake.
+ * The row turns into an "Deleted — Undo" strip in place, counting down, and the
+ * server action runs only once that window closes. Keeping it in the row means
+ * the offer sits where the user's attention already is, rather than in a corner
+ * of the screen they may never look at.
  *
- * Hiding is exposed as a predicate rather than by owning the list, so it
- * composes with hooks that already own it — `useDragOrder`, for instance.
+ * State is exposed as lookups rather than by owning the list, so this composes
+ * with hooks that already own it — `useDragOrder`, for instance.
  */
 export function useUndoableDelete({
   onDelete,
@@ -25,13 +27,14 @@ export function useUndoableDelete({
   delayMs?: number;
 }) {
   const router = useRouter();
-  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
-  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  /** id -> timestamp at which the delete commits. */
+  const [pending, setPending] = useState<Map<string, number>>(new Map());
+  const [now, setNow] = useState(0);
 
-  const unhide = useCallback((id: string) => {
-    setPendingIds((prev) => {
+  const forget = useCallback((id: string) => {
+    setPending((prev) => {
       if (!prev.has(id)) return prev;
-      const next = new Set(prev);
+      const next = new Map(prev);
       next.delete(id);
       return next;
     });
@@ -39,67 +42,103 @@ export function useUndoableDelete({
 
   const commit = useCallback(
     async (id: string) => {
-      timers.current.delete(id);
       try {
         await onDelete(id);
         router.refresh();
       } catch (error) {
-        // The row is still there on the server, so put it back rather than
+        // The row still exists on the server, so put it back rather than
         // leaving the list quietly out of step with the database.
         console.error("Delete failed:", error);
         toast.error("Couldn't delete that. It has been restored.");
-        unhide(id);
+        router.refresh();
       }
     },
-    [onDelete, router, unhide]
+    [onDelete, router]
   );
 
-  /** Hide the row, then delete it unless the user undoes within the window. */
-  const requestDelete = useCallback(
-    (id: string, label: string) => {
-      if (timers.current.has(id)) return;
+  // One interval drives both the countdown and the commit, so what the user
+  // sees and what actually fires can never disagree.
+  useEffect(() => {
+    if (pending.size === 0) return;
 
-      setPendingIds((prev) => new Set(prev).add(id));
-      timers.current.set(
-        id,
-        setTimeout(() => void commit(id), delayMs)
-      );
+    const tick = () => {
+      const current = Date.now();
+      const expired = [...pending.entries()]
+        .filter(([, expiresAt]) => expiresAt <= current)
+        .map(([id]) => id);
 
-      toast(`Deleted ${label}`, {
-        duration: delayMs,
-        action: {
-          label: "Undo",
-          onClick: () => {
-            const timer = timers.current.get(id);
-            if (timer) clearTimeout(timer);
-            timers.current.delete(id);
-            unhide(id);
-          },
-        },
-      });
-    },
-    [commit, delayMs, unhide]
-  );
+      if (expired.length > 0) {
+        setPending((prev) => {
+          const next = new Map(prev);
+          for (const id of expired) next.delete(id);
+          return next;
+        });
+        for (const id of expired) void commit(id);
+      }
+      setNow(current);
+    };
+
+    tick();
+    const interval = setInterval(tick, TICK_MS);
+    return () => clearInterval(interval);
+  }, [pending, commit]);
+
+  // Keeps the latest pending set reachable from the unmount cleanup without
+  // making that effect re-run (and fire early) every time the set changes.
+  // Synced in an effect rather than during render, which React disallows.
+  const pendingRef = useRef(pending);
+  const onDeleteRef = useRef(onDelete);
+  useEffect(() => {
+    pendingRef.current = pending;
+    onDeleteRef.current = onDelete;
+  });
 
   // Navigating away is not an undo: flush anything still waiting so the delete
   // the user asked for actually happens.
   useEffect(() => {
-    const timersAtMount = timers.current;
     return () => {
-      for (const [id, timer] of timersAtMount) {
-        clearTimeout(timer);
-        void onDelete(id).catch((e) => console.error("Delete failed:", e));
+      for (const id of pendingRef.current.keys()) {
+        void onDeleteRef.current(id).catch((e) =>
+          console.error("Delete failed:", e)
+        );
       }
-      timersAtMount.clear();
     };
-    // Intentionally mount-only: this is unmount cleanup, and re-running it when
-    // onDelete's identity changes would fire the pending deletes early.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const requestDelete = useCallback(
+    (id: string) => {
+      setPending((prev) => {
+        if (prev.has(id)) return prev;
+        return new Map(prev).set(id, Date.now() + delayMs);
+      });
+    },
+    [delayMs]
+  );
+
+  const undo = useCallback((id: string) => forget(id), [forget]);
+
   return {
-    /** True while a row is hidden and awaiting its undo window. */
-    isPendingDelete: useCallback((id: string) => pendingIds.has(id), [pendingIds]),
+    /** True while the row is showing its undo strip. */
+    isPendingDelete: useCallback((id: string) => pending.has(id), [pending]),
+    /** Whole seconds left, for the countdown. */
+    secondsLeft: useCallback(
+      (id: string) => {
+        const expiresAt = pending.get(id);
+        if (expiresAt === undefined) return 0;
+        return Math.max(0, Math.ceil((expiresAt - now) / 1000));
+      },
+      [pending, now]
+    ),
+    /** 1 → 0 as the window closes, for the progress bar. */
+    progress: useCallback(
+      (id: string) => {
+        const expiresAt = pending.get(id);
+        if (expiresAt === undefined) return 0;
+        return Math.max(0, Math.min(1, (expiresAt - now) / delayMs));
+      },
+      [pending, now, delayMs]
+    ),
     requestDelete,
+    undo,
   };
 }

@@ -18,7 +18,11 @@ import {
   deleteRegistrationLine,
 } from "@/lib/actions/resources";
 import { useUndoableDelete } from "@/lib/use-undoable-delete";
-import { AnimatedTableBody, AnimatedTableRow } from "@/components/animated-table-row";
+import {
+  AnimatedTableBody,
+  AnimatedTableRow,
+  UndoDeleteRow,
+} from "@/components/animated-table-row";
 
 interface RegistrationLine {
   id: string;
@@ -34,7 +38,8 @@ export function RegistrationLineList({ lines }: { lines: RegistrationLine[] }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const { isPendingDelete, requestDelete } = useUndoableDelete({ onDelete: deleteRegistrationLine });
+  const { isPendingDelete, secondsLeft, progress, requestDelete, undo } =
+    useUndoableDelete({ onDelete: deleteRegistrationLine });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -158,7 +163,16 @@ export function RegistrationLineList({ lines }: { lines: RegistrationLine[] }) {
               </thead>
               <AnimatedTableBody>
                 {lines.map((line) =>
-                  isPendingDelete(line.id) ? null : (
+                  isPendingDelete(line.id) ? (
+                    <UndoDeleteRow
+                      key={line.id}
+                      colSpan={4}
+                      label={line.name}
+                      secondsLeft={secondsLeft(line.id)}
+                      progress={progress(line.id)}
+                      onUndo={() => undo(line.id)}
+                    />
+                  ) : (
                   <AnimatedTableRow
                     key={line.id}
                     className={`border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors ${
@@ -206,7 +220,7 @@ export function RegistrationLineList({ lines }: { lines: RegistrationLine[] }) {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-destructive"
-                          onClick={() => requestDelete(line.id, `"${line.name}"`)}
+                          onClick={() => requestDelete(line.id)}
                           disabled={isPending}
                         >
                           <Trash2 className="h-3 w-3" />

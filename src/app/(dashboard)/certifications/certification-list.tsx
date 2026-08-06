@@ -20,7 +20,11 @@ import {
 } from "@/lib/actions/resources";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { useUndoableDelete } from "@/lib/use-undoable-delete";
-import { AnimatedTableBody, AnimatedTableRow } from "@/components/animated-table-row";
+import {
+  AnimatedTableBody,
+  AnimatedTableRow,
+  UndoDeleteRow,
+} from "@/components/animated-table-row";
 import { OrderCell } from "@/components/order-cell";
 
 interface Certification {
@@ -53,7 +57,8 @@ export function CertificationList({
     move: moveCertification,
   });
 
-  const { isPendingDelete, requestDelete } = useUndoableDelete({ onDelete: deleteCertification });
+  const { isPendingDelete, secondsLeft, progress, requestDelete, undo } =
+    useUndoableDelete({ onDelete: deleteCertification });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -180,7 +185,16 @@ export function CertificationList({
               </thead>
               <AnimatedTableBody>
                 {items.map((cert, index) =>
-                  isPendingDelete(cert.id) ? null : (
+                  isPendingDelete(cert.id) ? (
+                    <UndoDeleteRow
+                      key={cert.id}
+                      colSpan={6}
+                      label={cert.name}
+                      secondsLeft={secondsLeft(cert.id)}
+                      progress={progress(cert.id)}
+                      onUndo={() => undo(cert.id)}
+                    />
+                  ) : (
                   <AnimatedTableRow
                     key={cert.id}
                     {...getRowProps(index)}
@@ -220,7 +234,7 @@ export function CertificationList({
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditItem(cert); setOpen(true); }}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => requestDelete(cert.id, `"${cert.name}"`)} disabled={isPending}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => requestDelete(cert.id)} disabled={isPending}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>

@@ -20,7 +20,11 @@ import {
 } from "@/lib/actions/resources";
 import { useDragOrder } from "@/lib/use-drag-order";
 import { useUndoableDelete } from "@/lib/use-undoable-delete";
-import { AnimatedTableBody, AnimatedTableRow } from "@/components/animated-table-row";
+import {
+  AnimatedTableBody,
+  AnimatedTableRow,
+  UndoDeleteRow,
+} from "@/components/animated-table-row";
 import { OrderCell } from "@/components/order-cell";
 
 interface Banner {
@@ -62,7 +66,8 @@ export function BannerList({
     move: moveBanner,
   });
 
-  const { isPendingDelete, requestDelete } = useUndoableDelete({ onDelete: deleteBanner });
+  const { isPendingDelete, secondsLeft, progress, requestDelete, undo } =
+    useUndoableDelete({ onDelete: deleteBanner });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -242,7 +247,16 @@ export function BannerList({
               </thead>
               <AnimatedTableBody>
                 {items.map((banner, index) =>
-                  isPendingDelete(banner.id) ? null : (
+                  isPendingDelete(banner.id) ? (
+                    <UndoDeleteRow
+                      key={banner.id}
+                      colSpan={7}
+                      label={banner.name}
+                      secondsLeft={secondsLeft(banner.id)}
+                      progress={progress(banner.id)}
+                      onUndo={() => undo(banner.id)}
+                    />
+                  ) : (
                   <AnimatedTableRow
                     key={banner.id}
                     {...getRowProps(index)}
@@ -303,7 +317,7 @@ export function BannerList({
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditItem(banner); setOpen(true); }}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => requestDelete(banner.id, `"${banner.name}"`)} disabled={isPending}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => requestDelete(banner.id)} disabled={isPending}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
