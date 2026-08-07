@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import type { Session } from "next-auth";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type ActivityWithUser = Prisma.ActivityLogGetPayload<{
@@ -13,14 +14,47 @@ interface LogActivityParams {
   details?: string;
 }
 
+/**
+ * The users row to attribute an entry to, restoring it if it has gone missing.
+ *
+ * The JWT records the row id once at sign-in and is never refreshed, so a
+ * session can outlive the row it names — clearing the table leaves everyone
+ * still signed in, presenting an id that resolves to nothing. Attributing by
+ * that id then trips the foreign key and every entry is lost. Resolving by
+ * email instead, and recreating the row when it is absent, keeps auditing
+ * working across a wipe. Recreating is safe: signIn already vetted this
+ * session, and it is the same upsert that callback performs.
+ */
+async function resolveAuthor(session: Session) {
+  const email = session.user?.email?.toLowerCase();
+  if (!email) return null;
+
+  const rootEmail = process.env.ROOT_USER_EMAIL?.toLowerCase();
+
+  const author = await prisma.user.upsert({
+    where: { email },
+    update: {},
+    create: {
+      email,
+      name: session.user?.name,
+      image: session.user?.image,
+      role: email === rootEmail ? "root" : "admin",
+    },
+    select: { id: true },
+  });
+
+  return author.id;
+}
+
 export async function logActivity(params: LogActivityParams) {
   try {
     // auth() reads request headers, so it throws when an action is invoked
     // outside a request — from a script or a scheduled job, for instance.
     // Auditing must not decide whether those callers work.
     const session = await auth();
-    const userId = session?.user?.id;
+    if (!session) return null;
 
+    const userId = await resolveAuthor(session);
     if (!userId) return null;
 
     return await prisma.activityLog.create({
@@ -33,11 +67,9 @@ export async function logActivity(params: LogActivityParams) {
       },
     });
   } catch (error) {
-    // Auditing must never take down the operation it is recording. The usual
-    // cause is a session whose JWT still points at a users row that no longer
-    // exists (e.g. the table was cleared), which trips the foreign key.
-    // Callers also log from their own catch blocks, so throwing here would
-    // replace the real error with this one.
+    // Auditing must never take down the operation it is recording. Callers
+    // also log from their own catch blocks, so throwing here would replace the
+    // real error with this one.
     console.error("Failed to write activity log:", error);
     return null;
   }
