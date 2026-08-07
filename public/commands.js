@@ -184,17 +184,14 @@ function continueWithEmail(userEmail, token, item, event, isAuto) {
       return;
     }
 
-    setSignature(html, item, event, isAuto);
+    setSignature(html, item, event);
   });
 }
 
 /**
- * setSignatureAsync fills the signature area without moving the cursor, but
- * Office caps its `data` at 30,000 characters and classic Outlook throws
- * Sys.ArgumentOutOfRangeException past that instead of failing through the
- * callback. Signatures carrying base64 images run well over it, so above the
- * cap we insert at the cursor, which allows a megabyte. On the fresh compose
- * this runs against, that is the same place.
+ * Office caps setSignatureAsync's `data` at 30,000 characters and classic
+ * Outlook throws Sys.ArgumentOutOfRangeException past it rather than failing
+ * through the callback. A signature carrying base64 images runs well over.
  */
 var SIGNATURE_MAX_CHARS = 30000;
 
@@ -206,7 +203,35 @@ var SIGNATURE_MAX_CHARS = 30000;
  */
 var SIGNATURE_MARKER = "bss-signature-block";
 
-function setSignature(html, item, event, isAuto) {
+/**
+ * Append the signature by rewriting the body, for signatures too large for
+ * setSignatureAsync.
+ *
+ * This is string surgery rather than DOM work on purpose: classic Outlook runs
+ * commands.js in a JavaScript-only runtime with no document, so DOMParser --
+ * which the taskpane uses for the same job -- does not exist here.
+ */
+function appendToBody(item, wrapped, options, done) {
+  item.body.getAsync(Office.CoercionType.Html, function (result) {
+    if (result.status !== Office.AsyncResultStatus.Succeeded) {
+      done(result);
+      return;
+    }
+
+    var body = result.value || "";
+    // Replacing via a function, not a "$&" pattern: the signature is arbitrary
+    // HTML and a stray $ in it would otherwise be read as a substitution.
+    var merged = /<\/body\s*>/i.test(body)
+      ? body.replace(/<\/body\s*>/i, function (close) {
+          return wrapped + close;
+        })
+      : body + wrapped;
+
+    item.body.setAsync(merged, options, done);
+  });
+}
+
+function setSignature(html, item, event) {
   var wrapped =
     '<div id="' + SIGNATURE_MARKER + '" class="' + SIGNATURE_MARKER + '">' +
     html +
@@ -222,16 +247,21 @@ function setSignature(html, item, event, isAuto) {
     if (event) event.completed();
   };
 
-  if (isAuto && wrapped.length <= SIGNATURE_MAX_CHARS) {
+  // setSignatureAsync is the right call here -- it targets the signature area
+  // and needs no cursor -- so use it whenever the signature fits.
+  if (wrapped.length <= SIGNATURE_MAX_CHARS) {
     try {
       item.body.setSignatureAsync(wrapped, options, done);
       return;
     } catch (e) {
-      console.log("setSignatureAsync threw, falling back to cursor insert:", e);
+      console.log("setSignatureAsync threw, writing the body instead:", e);
     }
   }
 
-  item.body.setSelectedDataAsync(wrapped, options, done);
+  // Past the cap, write the body ourselves. Not setSelectedDataAsync: this runs
+  // from a launch event, which has no compose focus and so no cursor to insert
+  // at, and it fails there silently.
+  appendToBody(item, wrapped, options, done);
 }
 
 function autoInsertSignature(event) {
