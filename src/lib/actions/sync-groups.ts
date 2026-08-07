@@ -4,6 +4,35 @@ import { prisma } from "@/lib/prisma";
 import { fetchAllGraphGroups, fetchGroupMembers } from "@/lib/graph";
 import { logActivity } from "@/lib/activity";
 
+/**
+ * Remove groups Microsoft no longer returns. Memberships go by cascade, but
+ * assignments scoped to a group hold its id in scopeValue as plain text with no
+ * foreign key behind it, so they have to be cleared here or they linger as
+ * rules that can never match anyone again.
+ *
+ * As with users, an empty result is read as a failed fetch rather than a tenant
+ * with no groups, since acting on it would delete every group and every rule
+ * scoped to one.
+ */
+async function pruneDeletedGroups(liveMsIds: string[]) {
+  if (liveMsIds.length === 0) return { groups: 0, assignments: 0 };
+
+  const live = new Set(liveMsIds);
+  const known = await prisma.msGroup.findMany({ select: { id: true, msId: true } });
+  const goneIds = known.filter((g) => !live.has(g.msId)).map((g) => g.id);
+
+  if (goneIds.length === 0) return { groups: 0, assignments: 0 };
+
+  const assignments = await prisma.assignment.deleteMany({
+    where: { scope: "group", scopeValue: { in: goneIds } },
+  });
+  const groups = await prisma.msGroup.deleteMany({
+    where: { id: { in: goneIds } },
+  });
+
+  return { groups: groups.count, assignments: assignments.count };
+}
+
 export async function syncGroups() {
   try {
     await prisma.syncMeta.upsert({
@@ -69,27 +98,46 @@ export async function syncGroups() {
       totalMembers += memberData.length;
     }
 
+    const removed = await pruneDeletedGroups(graphGroups.map((g) => g.id));
+
+    const removedNote =
+      removed.groups > 0
+        ? `, ${removed.groups} removed` +
+          (removed.assignments > 0
+            ? ` with ${removed.assignments} assignment${removed.assignments === 1 ? "" : "s"}`
+            : "")
+        : "";
+
+    const summary = `Synced ${graphGroups.length} groups (${created} created, ${updated} updated${removedNote}, ${totalMembers} memberships)`;
+
     await prisma.syncMeta.upsert({
       where: { syncType: "groups" },
       update: {
         lastSync: new Date(),
         status: "completed",
-        details: `Synced ${graphGroups.length} groups (${created} created, ${updated} updated, ${totalMembers} memberships)`,
+        details: summary,
       },
       create: {
         syncType: "groups",
         lastSync: new Date(),
         status: "completed",
-        details: `Synced ${graphGroups.length} groups (${created} created, ${updated} updated, ${totalMembers} memberships)`,
+        details: summary,
       },
     });
 
     await logActivity({
-      action: `Synced ${graphGroups.length} groups from Microsoft Graph (${created} new, ${updated} updated, ${totalMembers} memberships)`,
+      action: `Synced ${graphGroups.length} groups from Microsoft Graph (${created} new, ${updated} updated${removedNote}, ${totalMembers} memberships)`,
       entity: "groups",
     });
 
-    return { success: true, total: graphGroups.length, created, updated, totalMembers };
+    return {
+      success: true,
+      total: graphGroups.length,
+      created,
+      updated,
+      totalMembers,
+      removed: removed.groups,
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
 

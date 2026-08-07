@@ -16,7 +16,11 @@ export function SyncGroupsButton() {
     startTransition(async () => {
       const res = await syncGroups();
       if (res.success) {
-        setResult(`Synced ${res.total} groups (${res.created} new, ${res.totalMembers} memberships)`);
+        setResult(
+          `Synced ${res.total} groups (${res.created} new` +
+            (res.removed ? `, ${res.removed} removed` : "") +
+            `, ${res.totalMembers} memberships)`
+        );
       } else {
         setResult(`Error: ${res.error}`);
       }

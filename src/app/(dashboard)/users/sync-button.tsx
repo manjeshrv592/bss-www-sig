@@ -16,7 +16,11 @@ export function SyncButton({ lastStatus }: { lastStatus: string }) {
     startTransition(async () => {
       const res = await syncUsers();
       if (res.success) {
-        setResult(`Synced ${res.total} users (${res.created} new, ${res.updated} updated)`);
+        setResult(
+          `Synced ${res.total} users (${res.created} new, ${res.updated} updated` +
+            (res.removed ? `, ${res.removed} removed` : "") +
+            ")"
+        );
       } else {
         setResult(`Error: ${res.error}`);
       }
