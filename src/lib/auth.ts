@@ -64,6 +64,8 @@ export const authConfig: NextAuthConfig = {
       // The ADMIN_EMAILS allowlist only gates Microsoft logins. Root login is
       // already validated against ROOT_USER_EMAIL/ROOT_USER_PASS in authorize().
       if (!isRoot && adminEmails.length > 0 && !adminEmails.includes(email)) {
+        // TEMPORARY — remove once the v.anand access-denied mismatch is found.
+        console.log("[signIn denied]", JSON.stringify({ received: email, allowlist: adminEmails }));
         return false;
       }
 
