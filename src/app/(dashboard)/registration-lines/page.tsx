@@ -36,7 +36,7 @@ export default async function Page(props: {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Registration Lines</h1>
         <p className="text-sm text-muted-foreground">
-          A single line shown directly under the disclaimer, in the same style.
+          A single line shown between the footer and the disclaimer, in the same style as the disclaimer.
           Assign one per scope — the most specific rule wins.
         </p>
       </div>
