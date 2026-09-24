@@ -42,7 +42,7 @@ interface SignatureOptions {
   website?: string;
   tagline?: string;
   defaultCompanyName?: string;
-  /** Single line between the footer and the disclaimer, styled to match the disclaimer. */
+  /** Single line in the right column, directly below the address. */
   registrationText?: string | null;
   /** Footer cells. Fall back to the tagline/website defaults when unassigned. */
   footerLeft?: string | null;
@@ -150,22 +150,12 @@ export function generateSignatureHtml(
       .replace(/"/g, "&quot;");
   }
 
-  // Registration line — sits between the footer and the disclaimer text, and
-  // deliberately reuses the disclaimer's styling. The gap below it is only
-  // added when a disclaimer follows, so a lone registration line has no
-  // trailing space.
-  const registrationText = options.registrationText?.trim();
-  const registrationGap = disclaimers.length > 0 ? "8px" : "0";
-  const registrationHtml = registrationText
-    ? `
-      <div style="font-size: 12px; color: #6b7280; line-height: 1.4; word-wrap: break-word; overflow-wrap: break-word; text-align: justify; padding-bottom: ${registrationGap};">
-        ${escapeHtml(registrationText)}
-      </div>`
-    : "";
+  // Registration line — a row in the right column, directly below the address.
+  const registrationText = options.registrationText?.trim() ?? "";
 
   // Generate disclaimer HTML
   let disclaimerHtml = "";
-  if (disclaimers.length > 0 || registrationHtml) {
+  if (disclaimers.length > 0) {
     const ltContent = disclaimers
       .map(
         (lt) => `
@@ -181,7 +171,6 @@ export function generateSignatureHtml(
       </tr>
       <tr>
         <td>
-          ${registrationHtml}
           ${ltContent}
         </td>
       </tr>
@@ -248,7 +237,7 @@ export function generateSignatureHtml(
         </table>
       </td>
 
-      <!-- Right Column: Logo, Office, Address, Mobile, Telephone, Email -->
+      <!-- Right Column: Logo, Office, Address, Registration, Mobile, Telephone, Email -->
       <td style="vertical-align: top; text-align: right;">
         <table cellpadding="0" cellspacing="0" border="0" style="margin-left: auto;">
           ${options.logoUrl ? `
@@ -276,6 +265,15 @@ export function generateSignatureHtml(
               <span style="font-size: 13px; color: #1f2937; line-height: 1.5;">
                 ${addressHtml}
               </span>
+            </td>
+          </tr>
+          ` : ""}
+
+          ${registrationText ? `
+          <!-- Registration line (right column, below the address). Keeps the disclaimer's grey and size, right-aligned to match the column. -->
+          <tr>
+            <td style="padding-bottom: 4px; text-align: right;">
+              <span style="font-size: 12px; color: #6b7280; line-height: 1.4;">${escapeHtml(registrationText)}</span>
             </td>
           </tr>
           ` : ""}

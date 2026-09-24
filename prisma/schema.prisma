@@ -162,7 +162,7 @@ model Disclaimer {
   @@map("disclaimers")
 }
 
-/// A single line rendered between the footer and the disclaimer, in the disclaimer's style.
+/// A single line rendered in the right column, directly below the address.
 /// Singular in the signature, so assignment conflicts resolve by scope
 /// specificity rather than the OR + dedupe used for list resources.
 model RegistrationLine {
