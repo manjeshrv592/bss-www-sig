@@ -75,6 +75,8 @@ export function generateSignatureHtml(
   const contactNumber = user.mobilePhone ?? "";
   const telephoneNumber = user.businessPhones?.[0] ?? "";
   const companyName = user.companyName || options.defaultCompanyName || "";
+  // Shown below the logo: the user's office from Entra, else the company name.
+  const officeName = user.officeLocation || companyName;
   const website = options.website || "";
 
   // Build address over two lines:
@@ -221,7 +223,7 @@ export function generateSignatureHtml(
   <div id="bss-signature">
   <table cellpadding="0" cellspacing="0" border="0" width="500" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #1f2937; width: 500px;">
     <tr>
-      <!-- Left Column: Name, Designation, Mobile -->
+      <!-- Left Column: Name, Designation -->
       <td style="vertical-align: top; padding-right: 30px;">
         <table cellpadding="0" cellspacing="0" border="0">
           <!-- Name -->
@@ -238,18 +240,10 @@ export function generateSignatureHtml(
             </td>
           </tr>
 
-          ${contactNumber ? `
-          <!-- Mobile Number -->
-          <tr>
-            <td style="padding-bottom: 6px;">
-              <a href="tel:${contactNumber.replace(/[^0-9+]/g, "")}" style="color: #2563eb; text-decoration: none; font-size: 14px; font-weight: 600;"><span style="color: #2563eb; font-size: 14px; font-weight: 600;">M. ${contactNumber}</span></a>
-            </td>
-          </tr>
-          ` : ""}
         </table>
       </td>
 
-      <!-- Right Column: Logo, Company Name, Address, Telephone -->
+      <!-- Right Column: Logo, Office, Address, Mobile, Telephone -->
       <td style="vertical-align: top; text-align: right;">
         <table cellpadding="0" cellspacing="0" border="0" style="margin-left: auto;">
           ${options.logoUrl ? `
@@ -261,11 +255,11 @@ export function generateSignatureHtml(
           </tr>
           ` : ""}
 
-          ${companyName ? `
-          <!-- Company Name (right column, below logo) -->
+          ${officeName ? `
+          <!-- Office name (right column, below logo) -->
           <tr>
             <td style="padding-bottom: 10px; text-align: right;">
-              <a href="${website}" target="_blank" style="font-size: 14px; font-weight: 700; color: #2563eb; text-decoration: none; display: block; white-space: nowrap;">${companyName}</a>
+              <a href="${website}" target="_blank" style="font-size: 14px; font-weight: 700; color: #2563eb; text-decoration: none; display: block; white-space: nowrap;">${escapeHtml(officeName)}</a>
             </td>
           </tr>
           ` : ""}
@@ -277,6 +271,15 @@ export function generateSignatureHtml(
               <span style="font-size: 13px; color: #1f2937; line-height: 1.5;">
                 ${addressHtml}
               </span>
+            </td>
+          </tr>
+          ` : ""}
+
+          ${contactNumber ? `
+          <!-- Mobile Number (above the office telephone) -->
+          <tr>
+            <td style="text-align: right; padding-top: 4px;">
+              <a href="tel:${contactNumber.replace(/[^0-9+]/g, "")}" style="color: #2563eb; text-decoration: none; font-size: 14px;"><span style="color: #2563eb; font-size: 14px;">M. ${contactNumber}</span></a>
             </td>
           </tr>
           ` : ""}
@@ -305,7 +308,6 @@ export function generateSignatureHtml(
   </table>
   ` : ""}
   ${bannersHtml}
-  ${disclaimerHtml}
 
   <!-- Footer: width attribute + align attribute used for classic Outlook (Word renderer ignores width:100% CSS) -->
   <table cellpadding="0" cellspacing="0" border="0" width="500" style="margin-top: 15px; width: 500px;">
@@ -320,6 +322,7 @@ export function generateSignatureHtml(
       ` : ""}
     </tr>
   </table>
+  ${disclaimerHtml}
   </div>
 </body>
 </html>`.trim();
