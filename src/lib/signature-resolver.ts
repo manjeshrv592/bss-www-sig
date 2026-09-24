@@ -274,5 +274,5 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
  */
 const DEFAULT_BRANDING: CountryBranding = {
   companyName: "Blackstone Shipping Private Limited",
-  website: "https://blackstoneshipping.com",
+  website: "https://www.blackstoneshipping.com",
 };

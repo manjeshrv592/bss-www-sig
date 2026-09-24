@@ -155,7 +155,7 @@ export function FooterLineList({
                   name="rightText"
                   required
                   defaultValue={editItem?.rightText ?? ""}
-                  placeholder="blackstoneshipping.com"
+                  placeholder="www.blackstoneshipping.com"
                   className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -169,7 +169,7 @@ export function FooterLineList({
                 </p>
                 <div className="flex items-center justify-between gap-4 text-xs font-semibold text-blue-500">
                   <span>{editItem?.leftText || "14 Countries - 25 Offices"}</span>
-                  <span>{editItem?.rightText || "blackstoneshipping.com"}</span>
+                  <span>{editItem?.rightText || "www.blackstoneshipping.com"}</span>
                 </div>
               </div>
               <div className="flex justify-end gap-2">
