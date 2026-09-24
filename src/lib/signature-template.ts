@@ -9,6 +9,7 @@ interface SignatureUser {
   surname: string | null;
   displayName: string | null;
   jobTitle: string | null;
+  email?: string | null;
   mobilePhone: string | null;
   businessPhones: string[];
   officeLocation: string | null;
@@ -74,6 +75,7 @@ export function generateSignatureHtml(
   const designation = user.jobTitle ?? "";
   const contactNumber = user.mobilePhone ?? "";
   const telephoneNumber = user.businessPhones?.[0] ?? "";
+  const emailAddress = user.email?.trim() ?? "";
   const companyName = user.companyName || options.defaultCompanyName || "";
   // Shown below the logo: the user's office from Entra, else the company name.
   const officeName = user.officeLocation || companyName;
@@ -246,7 +248,7 @@ export function generateSignatureHtml(
         </table>
       </td>
 
-      <!-- Right Column: Logo, Office, Address, Mobile, Telephone -->
+      <!-- Right Column: Logo, Office, Address, Mobile, Telephone, Email -->
       <td style="vertical-align: top; text-align: right;">
         <table cellpadding="0" cellspacing="0" border="0" style="margin-left: auto;">
           ${options.logoUrl ? `
@@ -292,6 +294,15 @@ export function generateSignatureHtml(
           <tr>
             <td style="text-align: right; padding-top: 4px;">
               <a href="tel:${telephoneNumber.replace(/[^0-9+]/g, "")}" style="color: #2563eb; text-decoration: none; font-size: 14px;"><span style="color: #2563eb; font-size: 14px;">T. ${telephoneNumber}</span></a>
+            </td>
+          </tr>
+          ` : ""}
+
+          ${emailAddress ? `
+          <!-- Email (below the office telephone). Colour matches the phone numbers, size matches the address. The colour is repeated on the inner span because classic Outlook restyles links. -->
+          <tr>
+            <td style="text-align: right; padding-top: 4px;">
+              <a href="mailto:${escapeHtml(emailAddress)}" style="color: #2563eb; text-decoration: none; font-size: 13px;"><span style="color: #2563eb; font-size: 13px;">${escapeHtml(emailAddress)}</span></a>
             </td>
           </tr>
           ` : ""}
