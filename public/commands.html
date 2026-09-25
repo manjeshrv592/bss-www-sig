@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-  <script src="commands.js"></script>
+  <!-- Bump ?v whenever commands.js changes: Outlook reuses a cached script at an
+       unchanged URL. Classic Outlook loads commands.js directly from the
+       manifest instead, and does revalidate it. -->
+  <script src="commands.js?v=2026-09-25.2"></script>
 </head>
 <body></body>
 </html>
