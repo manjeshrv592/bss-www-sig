@@ -288,11 +288,14 @@ function setSignature(html, item, event) {
     if (event) event.completed();
   };
 
-  // setSignatureAsync is the right call here -- it targets the signature area
-  // and needs no cursor -- so use it whenever the signature fits.
-  if (wrapped.length <= SIGNATURE_MAX_CHARS) {
+  // setSignatureAsync is the right call here -- it targets the signature area,
+  // places it above the quoted thread and leaves the cursor alone -- so use it
+  // whenever the signature fits, which it does now that images are linked.
+  // Unwrapped: the marker flags a body-written signature, and the taskpane
+  // treats one as needing the fallback path on the next pick.
+  if (html.length <= SIGNATURE_MAX_CHARS) {
     try {
-      item.body.setSignatureAsync(wrapped, options, done);
+      item.body.setSignatureAsync(html, options, done);
       return;
     } catch (e) {
       console.log("setSignatureAsync threw, writing the body instead:", e);

@@ -307,19 +307,39 @@ function setBodyHtml(html) {
   });
 }
 
+/** Office's documented ceiling for setSignatureAsync's `data` argument. */
+var SIGNATURE_MAX_CHARS = 30000;
+
+function setSignatureArea(html) {
+  return new Promise(function (resolve, reject) {
+    Office.context.mailbox.item.body.setSignatureAsync(
+      html,
+      { coercionType: Office.CoercionType.Html },
+      function (result) {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+          resolve();
+        } else {
+          reject(new Error(result.error && result.error.message));
+        }
+      }
+    );
+  });
+}
+
 /**
  * Put the signature in the message, replacing one we put there earlier.
  *
- * This reads the body, edits it, and writes the whole thing back, rather than
- * inserting at the cursor. The pane has focus while the picker is open, so
- * there is no cursor in the message to insert at -- setSelectedDataAsync
- * reported success and the signature went nowhere visible. Rewriting the body
- * does not depend on where focus is.
+ * setSignatureAsync is the right call: it writes only Outlook's signature area,
+ * replaces a signature it set before, puts it above the quoted thread in a
+ * reply, and leaves the user's cursor where it was. It is capped at 30,000
+ * characters, which signatures now fit because their images are linked rather
+ * than embedded.
  *
- * setSignatureAsync would handle replacement natively, but Office caps its
- * data at 30,000 characters and a signature carrying base64 images runs
- * several times that, so it is not available to us. The marked wrapper is what
- * makes a second pick replace the first instead of stacking under it.
+ * The fallback reads the body, edits it and writes the whole thing back. That
+ * moves the cursor, so it is only used when setSignatureAsync can't be: a
+ * signature over the cap, or a draft that already holds one written into the
+ * body by an older version of this add-in, which setSignatureAsync can't see
+ * and would stack a second signature under.
  */
 async function putSignature(html) {
   var doc = new DOMParser().parseFromString(await getBodyHtml(), "text/html");
@@ -331,6 +351,18 @@ async function putSignature(html) {
   var previous = findSignatureBlocks(doc).filter(function (el) {
     return isAboveBoundary(el, boundary);
   });
+
+  // Unwrapped on purpose: the marker is what flags a body-written signature,
+  // so a signature-area one must not carry it or the next pick would take the
+  // fallback path needlessly.
+  if (previous.length === 0 && html.length <= SIGNATURE_MAX_CHARS) {
+    try {
+      await setSignatureArea(html);
+      return;
+    } catch (e) {
+      console.log("setSignatureAsync failed, writing the body instead:", e);
+    }
+  }
 
   var block = doc.createElement("div");
   block.id = SIGNATURE_MARKER;

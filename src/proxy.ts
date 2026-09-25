@@ -14,13 +14,15 @@ export async function proxy(request: NextRequest) {
   // Classic Outlook on Windows fetches this to authorize the event-based JS runtime; it must
   // return the raw JSON, not an auth redirect.
   const isWellKnown = pathname.startsWith("/.well-known");
+  // Signature images, fetched by recipients' mail apps with no session.
+  const isSignatureImage = pathname.startsWith("/api/images/");
   const isOfficeAddin =
     pathname.endsWith(".html") ||
     pathname.endsWith(".js") ||
     pathname.endsWith(".xml") ||
     pathname.endsWith(".png");
 
-  if (isAuthRoute || isSignatureApi || isLoginPage || isRootLoginPage || isWellKnown || isOfficeAddin) {
+  if (isAuthRoute || isSignatureApi || isLoginPage || isRootLoginPage || isWellKnown || isOfficeAddin || isSignatureImage) {
     return NextResponse.next();
   }
 

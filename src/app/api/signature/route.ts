@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyOfficeToken } from "@/lib/azure-token";
 import { resolveSignature } from "@/lib/signature-resolver";
 import { generateSignatureHtml } from "@/lib/signature-template";
+import { hostedImageUrl } from "@/lib/hosted-images";
 import { resolveSender } from "@/lib/shared-mailbox";
 
 // Optimize for faster response
@@ -116,10 +117,13 @@ export async function GET(request: NextRequest) {
 
     // 5. Generate HTML
     const baseUrl = process.env.AUTH_URL || new URL(request.url).origin;
+    // Link the images rather than embed them. Embedded base64 made signatures
+    // around 110 KB, too big for setSignatureAsync (30,000 characters), which
+    // forced a full-body rewrite that moved the user's cursor.
     const html = generateSignatureHtml(
       user,
-      signature.certifications,
-      signature.banners,
+      signature.certifications.map((c) => ({ ...c, image: hostedImageUrl(baseUrl, "certification", c) })),
+      signature.banners.map((b) => ({ ...b, image: hostedImageUrl(baseUrl, "banner", b) })),
       signature.disclaimers,
       {
         defaultCompanyName: signature.countryBranding.companyName,

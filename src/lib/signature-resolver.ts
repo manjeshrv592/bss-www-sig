@@ -6,8 +6,8 @@ export interface CountryBranding {
 }
 
 export interface ResolvedSignature {
-  certifications: { id: string; name: string; image: string | null; alt: string | null }[];
-  banners: { id: string; name: string; image: string | null; alt: string | null; link: string | null }[];
+  certifications: { id: string; name: string; image: string | null; alt: string | null; updatedAt: Date }[];
+  banners: { id: string; name: string; image: string | null; alt: string | null; link: string | null; updatedAt: Date }[];
   disclaimers: { id: string; name: string; content: string }[];
   registrationLine: { id: string; name: string; text: string } | null;
   footerLine: { id: string; name: string; leftText: string; rightText: string } | null;
@@ -104,12 +104,12 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
     const [certifications, banners, disclaimers, registrationLine, footerLine] = await Promise.all([
       prisma.certification.findMany({
         where: { id: { in: certIds }, isActive: true },
-        select: { id: true, name: true, image: true, alt: true },
+        select: { id: true, name: true, image: true, alt: true, updatedAt: true },
         orderBy: { sortOrder: "asc" },
       }),
       prisma.banner.findMany({
         where: { id: { in: bannerIds }, isActive: true },
-        select: { id: true, name: true, image: true, alt: true, link: true },
+        select: { id: true, name: true, image: true, alt: true, link: true, updatedAt: true },
         orderBy: { sortOrder: "asc" },
       }),
       prisma.disclaimer.findMany({
@@ -208,7 +208,7 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
     certIdSet.size > 0
       ? prisma.certification.findMany({
           where: { id: { in: [...certIdSet] }, isActive: true },
-          select: { id: true, name: true, image: true, alt: true },
+          select: { id: true, name: true, image: true, alt: true, updatedAt: true },
           orderBy: { sortOrder: "asc" },
         })
       : Promise.resolve([]),
@@ -230,7 +230,7 @@ export async function resolveSignature(msUserId: string): Promise<ResolvedSignat
               },
             ],
           },
-          select: { id: true, name: true, image: true, alt: true, link: true },
+          select: { id: true, name: true, image: true, alt: true, link: true, updatedAt: true },
           orderBy: { sortOrder: "asc" },
         })
       : Promise.resolve([]),
