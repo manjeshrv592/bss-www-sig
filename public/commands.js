@@ -204,8 +204,42 @@ var SIGNATURE_MAX_CHARS = 30000;
 var SIGNATURE_MARKER = "bss-signature-block";
 
 /**
- * Append the signature by rewriting the body, for signatures too large for
- * setSignatureAsync.
+ * Where the quoted thread starts in a reply or forward, as an index into the
+ * body HTML, or -1 for a fresh message. Mirrors findQuoteBoundary in
+ * taskpane.js: Outlook's own markers first, earliest in the document winning
+ * (a long thread quotes earlier replies carrying the same markers), then
+ * generic quote markers as a fallback.
+ */
+// Attribute quotes are matched loosely: classic Outlook's Word-generated HTML
+// often single-quotes them, or leaves them unquoted.
+var QUOTE_MARKERS = [
+  /<div\b[^>]*\bid=["']?[^"'\s>]*appendonsend\b/i,
+  /<div\b[^>]*\bid=["']?[^"'\s>]*mail-editor-reference-message-container\b/i,
+  /<hr\b[^>]*>\s*<div\b[^>]*\bid=["']?[^"'\s>]*divRplyFwdMsg\b/i,
+  /<div\b[^>]*\bid=["']?[^"'\s>]*divRplyFwdMsg\b/i,
+  /<span\b[^>]*\bid=["']?[^"'\s>]*OLK_SRC_BODY_SECTION\b/i,
+  /<a\b[^>]*\bname=["']?_MailEndCompose\b/i,
+  /<div\b[^>]*style=["'][^"']*border-top:\s*solid[^"']*padding:\s*3\.0pt/i,
+];
+var GENERIC_QUOTE_MARKERS = [/<div\b[^>]*class=["']?[^"'>]*gmail_quote/i, /<blockquote\b/i];
+
+function findQuoteBoundary(body) {
+  function earliest(patterns) {
+    var best = -1;
+    patterns.forEach(function (pattern) {
+      var match = pattern.exec(body);
+      if (match && (best === -1 || match.index < best)) best = match.index;
+    });
+    return best;
+  }
+  var index = earliest(QUOTE_MARKERS);
+  return index !== -1 ? index : earliest(GENERIC_QUOTE_MARKERS);
+}
+
+/**
+ * Put the signature in by rewriting the body, for signatures too large for
+ * setSignatureAsync. It goes directly above the quoted thread in a reply or
+ * forward, and at the end of a fresh message.
  *
  * This is string surgery rather than DOM work on purpose: classic Outlook runs
  * commands.js in a JavaScript-only runtime with no document, so DOMParser --
@@ -219,13 +253,20 @@ function appendToBody(item, wrapped, options, done) {
     }
 
     var body = result.value || "";
-    // Replacing via a function, not a "$&" pattern: the signature is arbitrary
-    // HTML and a stray $ in it would otherwise be read as a substitution.
-    var merged = /<\/body\s*>/i.test(body)
-      ? body.replace(/<\/body\s*>/i, function (close) {
-          return wrapped + close;
-        })
-      : body + wrapped;
+    var boundary = findQuoteBoundary(body);
+
+    // String slicing and a replace function, never a "$&" pattern: the
+    // signature is arbitrary HTML and a stray $ would be read as a substitution.
+    var merged;
+    if (boundary !== -1) {
+      merged = body.slice(0, boundary) + wrapped + body.slice(boundary);
+    } else if (/<\/body\s*>/i.test(body)) {
+      merged = body.replace(/<\/body\s*>/i, function (close) {
+        return wrapped + close;
+      });
+    } else {
+      merged = body + wrapped;
+    }
 
     item.body.setAsync(merged, options, done);
   });

@@ -41,6 +41,54 @@ var SKIP_AUTH = false;
 var SIGNATURE_MARKER = "bss-signature-block";
 
 /**
+ * Where the quoted thread starts in a reply or forward, or null for a fresh
+ * message. Anything from here down belongs to the message being answered.
+ *
+ * Outlook's own markers are matched first, earliest in the document winning:
+ * a long thread quotes earlier replies that carry the same markers ("x_"
+ * prefixed by Outlook on the web), and the topmost one is the current reply's.
+ * Generic quote markers are a fallback for clients that write none of these.
+ */
+var QUOTE_MARKERS = [
+  '[id$="appendonsend"]',                          // Outlook on the web, new Outlook
+  '[id$="mail-editor-reference-message-container"]',
+  '[id$="divRplyFwdMsg"]',
+  '[id$="OLK_SRC_BODY_SECTION"]',                  // Outlook for Mac
+  'a[name="_MailEndCompose"]',                     // classic Outlook
+  'div[style*="border-top:solid"][style*="padding:3.0pt"]',
+];
+var GENERIC_QUOTE_MARKERS = [".gmail_quote", "blockquote"];
+
+function findQuoteBoundary(doc) {
+  function earliest(selectors) {
+    var best = null;
+    selectors.forEach(function (selector) {
+      var el = doc.body.querySelector(selector);
+      if (!el) return;
+      if (!best || best.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING) {
+        best = el;
+      }
+    });
+    return best;
+  }
+
+  var boundary = earliest(QUOTE_MARKERS) || earliest(GENERIC_QUOTE_MARKERS);
+  if (!boundary) return null;
+
+  // Outlook draws a rule above the quoted header -- keep the signature above it.
+  var previous = boundary.previousElementSibling;
+  if (previous && previous.tagName === "HR") return previous;
+  return boundary;
+}
+
+/** True when `el` sits in the part being written, not in the quoted thread. */
+function isAboveBoundary(el, boundary) {
+  if (!boundary) return true;
+  if (el === boundary || el.contains(boundary) || boundary.contains(el)) return false;
+  return Boolean(boundary.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING);
+}
+
+/**
  * Every signature block we have previously inserted, outermost first. Returns
  * more than one only if an earlier bug stacked them -- taking all of them out
  * is what un-stacks an already-broken draft.
@@ -275,20 +323,35 @@ function setBodyHtml(html) {
  */
 async function putSignature(html) {
   var doc = new DOMParser().parseFromString(await getBodyHtml(), "text/html");
+  var boundary = findQuoteBoundary(doc);
 
-  // Take out every signature we have put in before, then add the new one at the
-  // end. Editing in place would keep whichever position the old one held, but
-  // it also means trusting that we found exactly one -- removing and appending
-  // gives the same result from a clean or an already-stacked draft.
-  findSignatureBlocks(doc).forEach(function (el) {
-    if (el.parentNode) el.parentNode.removeChild(el);
+  // Only signatures in the part being written count as ours to replace. One in
+  // the quoted thread is the signature of whoever sent that message -- a
+  // colleague also using this add-in -- and must be left as it is.
+  var previous = findSignatureBlocks(doc).filter(function (el) {
+    return isAboveBoundary(el, boundary);
   });
 
   var block = doc.createElement("div");
   block.id = SIGNATURE_MARKER;
   block.className = SIGNATURE_MARKER;
   block.innerHTML = html;
-  doc.body.appendChild(block);
+
+  // A replacement goes where the old one was; a first signature goes directly
+  // above the quoted thread, or at the end of a message that has none.
+  if (previous.length > 0) {
+    previous[0].parentNode.insertBefore(block, previous[0]);
+  } else if (boundary) {
+    boundary.parentNode.insertBefore(block, boundary);
+  } else {
+    doc.body.appendChild(block);
+  }
+
+  // Remove every earlier copy, which also un-stacks a draft an older version
+  // of this add-in left with several.
+  previous.forEach(function (el) {
+    if (el.parentNode) el.parentNode.removeChild(el);
+  });
 
   // Serialise the whole document, not doc.body.innerHTML: Outlook returns the
   // body wrapped in <html><head><style>, and dropping that head strips the
