@@ -120,6 +120,8 @@ export default async function ActivityPage(props: {
       <Pagination
         page={page}
         totalPages={totalPages}
+        total={total}
+        perPage={PER_PAGE}
         basePath="/activity"
         extraParams={extraParams}
       />

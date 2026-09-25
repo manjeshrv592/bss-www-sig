@@ -1,5 +1,6 @@
 import { auth, signIn } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 function MicrosoftLogo() {
@@ -50,13 +51,14 @@ export default async function LoginPage() {
               await signIn("microsoft-entra-id", { redirectTo: "/" });
             }}
           >
-            <button
+            <Button
               type="submit"
-              className="w-full flex items-center justify-center gap-3 rounded-md bg-[#2f2f2f] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#404040] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              size="lg"
+              className="w-full gap-3 bg-[#2f2f2f] bg-none text-white shadow-none hover:bg-[#404040] hover:brightness-100"
             >
               <MicrosoftLogo />
               Sign in with Microsoft
-            </button>
+            </Button>
           </form>
           <p className="text-center text-[11px] text-muted-foreground/70 pt-1">
             Only authorized administrators can access this app.

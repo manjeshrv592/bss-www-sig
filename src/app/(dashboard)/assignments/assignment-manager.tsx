@@ -12,9 +12,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Plus, Trash2, Loader2, Globe, MapPin, Map, Building2, Briefcase, Users } from "lucide-react";
 import {
-  createAssignment,
+  createAssignments,
   deleteAssignment,
   deleteAssignments,
 } from "@/lib/actions/assignments";
@@ -109,7 +110,7 @@ export function AssignmentManager({
   const [scope, setScope] = useState("global");
   const [scopeValue, setScopeValue] = useState("");
   const [resourceType, setResourceType] = useState("certification");
-  const [resourceId, setResourceId] = useState("");
+  const [resourceIds, setResourceIds] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -144,20 +145,38 @@ export function AssignmentManager({
 
   // Every scope except "global" is meaningless without a value to match on.
   const needsScopeValue = scope !== "global";
-  const canSubmit = Boolean(resourceId) && (!needsScopeValue || Boolean(scopeValue));
+  const canSubmit = resourceIds.length > 0 && (!needsScopeValue || Boolean(scopeValue));
+
+  // Resources already assigned to the scope being edited, so the picker can
+  // flag them. Re-assigning one is harmless (it's de-duplicated), just noise.
+  const alreadyAssigned = new Set(
+    assignments
+      .filter(
+        (a) =>
+          a.scope === scope &&
+          (a.scopeValue ?? "") === (scope === "global" ? "" : scopeValue) &&
+          a.resourceType === resourceType
+      )
+      .map((a) => a.resourceId)
+  );
+  const resourceOptions = getResources().map((r) => ({
+    value: r.id,
+    label: r.name,
+    hint: alreadyAssigned.has(r.id) ? "· already assigned" : undefined,
+  }));
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
     startTransition(async () => {
-      await createAssignment({
+      await createAssignments({
         scope,
         scopeValue: scope !== "global" ? scopeValue : undefined,
         resourceType,
-        resourceId,
+        resourceIds,
       });
       setOpen(false);
-      setResourceId("");
+      setResourceIds([]);
       setScopeValue("");
       router.refresh();
     });
@@ -303,7 +322,7 @@ export function AssignmentManager({
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Resource Type</label>
-                <Select value={resourceType} onValueChange={(v) => { setResourceType(v); setResourceId(""); }}>
+                <Select value={resourceType} onValueChange={(v) => { setResourceType(v); setResourceIds([]); }}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
@@ -325,17 +344,32 @@ export function AssignmentManager({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Resource</label>
-                <Select value={resourceId} onValueChange={setResourceId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select resource..." />
-                  </SelectTrigger>
-                  <SelectContent position="popper">
-                    {getResources().map((r) => (
-                      <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="text-sm font-medium">
+                  {SINGLE_SLOT_TYPES.has(resourceType) ? "Resource" : "Resources"}
+                </label>
+                {SINGLE_SLOT_TYPES.has(resourceType) ? (
+                  // One slot per user, so picking several would just fight over it.
+                  <Combobox
+                    className="w-full"
+                    value={resourceIds[0] ?? ""}
+                    onValueChange={(v) => setResourceIds([v])}
+                    options={resourceOptions}
+                    placeholder="Select resource..."
+                    searchPlaceholder="Search..."
+                    emptyText="No matching resource."
+                  />
+                ) : (
+                  <Combobox
+                    multiple
+                    className="w-full"
+                    value={resourceIds}
+                    onValueChange={setResourceIds}
+                    options={resourceOptions}
+                    placeholder="Select resources..."
+                    searchPlaceholder="Search..."
+                    emptyText="No matching resource."
+                  />
+                )}
               </div>
 
               <div className="flex justify-end gap-2">

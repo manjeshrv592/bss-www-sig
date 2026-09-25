@@ -42,7 +42,7 @@ export default async function Page(props: {
       </div>
 
       <RegistrationLineList lines={lines} inUse={inUse} />
-      <Pagination page={page} totalPages={totalPages} basePath="/registration-lines" />
+      <Pagination page={page} totalPages={totalPages} total={total} perPage={PER_PAGE} basePath="/registration-lines" />
     </div>
   );
 }

@@ -43,7 +43,7 @@ export default async function Page(props: {
       </div>
 
       <BannerList banners={rows} inUse={inUse} offset={offset} total={total} />
-      <Pagination page={page} totalPages={totalPages} basePath="/banners" />
+      <Pagination page={page} totalPages={totalPages} total={total} perPage={PER_PAGE} basePath="/banners" />
     </div>
   );
 }

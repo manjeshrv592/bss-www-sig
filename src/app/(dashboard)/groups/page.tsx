@@ -124,6 +124,8 @@ export default async function GroupsPage(props: {
       <Pagination
         page={page}
         totalPages={totalPages}
+        total={total}
+        perPage={PER_PAGE}
         basePath="/groups"
         extraParams={query ? `q=${query}` : ""}
       />

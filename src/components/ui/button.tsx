@@ -26,21 +26,21 @@ const buttonVariants = cva(
       // Height comes from padding + an explicit leading, not a fixed h-*, so a
       // button grows with its content instead of clipping it. leading is set
       // per size to keep the resulting heights predictable.
-      // default 36px · xs 24px · sm 30px · lg 42px
+      // Heights include the 1px border: default 42px · xs 30px · sm 36px · lg 46px
       size: {
         default:
-          "gap-1.5 px-3.5 py-2 leading-5 has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5",
-        xs: "gap-1 rounded-[min(var(--radius-md),10px)] px-2 py-1 text-xs leading-4 in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "gap-1 rounded-[min(var(--radius-md),12px)] px-3 py-1.5 text-[0.8rem] leading-[1.125rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "gap-1.5 px-4 py-2.5 leading-5 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
+          "gap-1.5 px-4 py-2.5 leading-5 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
+        xs: "gap-1 rounded-[min(var(--radius-md),10px)] px-2.5 py-1.5 text-xs leading-4 in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3",
+        sm: "gap-1 rounded-[min(var(--radius-md),12px)] px-3.5 py-2 text-[0.8rem] leading-[1.125rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5 [&_svg:not([class*='size-'])]:size-3.5",
+        lg: "gap-1.5 px-5 py-3 leading-5 has-data-[icon=inline-end]:pr-3.5 has-data-[icon=inline-start]:pl-3.5",
         // Icon-only buttons have no text to pad against, so they stay square and
         // are sized to match the text button of the same name.
-        icon: "size-9",
+        icon: "size-[2.625rem]",
         "icon-xs":
-          "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
+          "size-[1.875rem] rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
         "icon-sm":
-          "size-[1.875rem] rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
-        "icon-lg": "size-[2.625rem]",
+          "size-9 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
+        "icon-lg": "size-[2.875rem]",
       },
     },
     defaultVariants: {

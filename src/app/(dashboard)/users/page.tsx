@@ -5,6 +5,7 @@ import { Users } from "lucide-react";
 import { SyncButton } from "./sync-button";
 import { UserSearch } from "./user-search";
 import { LocaleDate } from "@/components/locale-date";
+import { Pagination } from "@/components/pagination";
 
 export default async function UsersPage(props: {
   searchParams: Promise<{ q?: string; page?: string }>;
@@ -86,12 +87,13 @@ export default async function UsersPage(props: {
                 {users.map((user) => (
                   <tr
                     key={user.id}
-                    className="border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors"
+                    className="relative cursor-pointer border-b border-border/40 last:border-0 hover:bg-accent/50 transition-colors"
                   >
                     <td className="px-4 py-3">
+                      {/* after: stretches this link over the whole row, so the row is the click target */}
                       <Link
                         href={`/users/${user.id}`}
-                        className="font-medium hover:underline"
+                        className="font-medium after:absolute after:inset-0 after:content-['']"
                       >
                         {user.displayName ?? "—"}
                       </Link>
@@ -116,29 +118,14 @@ export default async function UsersPage(props: {
         </Card>
       )}
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            Page {page} of {totalPages}
-          </p>
-          <div className="flex items-center gap-2">
-            {page > 1 && (
-              <Link href={`/users?page=${page - 1}${query ? `&q=${query}` : ""}`}>
-                <button className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent">
-                  Previous
-                </button>
-              </Link>
-            )}
-            {page < totalPages && (
-              <Link href={`/users?page=${page + 1}${query ? `&q=${query}` : ""}`}>
-                <button className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent">
-                  Next
-                </button>
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        perPage={perPage}
+        basePath="/users"
+        extraParams={query ? `q=${encodeURIComponent(query)}` : ""}
+      />
     </div>
   );
 }

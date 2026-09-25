@@ -108,3 +108,20 @@ export async function clearUserOverride(msUserId: string) {
 export async function deleteAssignments(ids: string[]) {
   for (const id of ids) await deleteAssignment(id);
 }
+
+/**
+ * Assign several resources of one type to the same scope in one request.
+ * Delegates to the single-item action so its de-duplication and logging stay
+ * defined once.
+ */
+export async function createAssignments(data: {
+  scope: string;
+  scopeValue?: string;
+  resourceType: string;
+  resourceIds: string[];
+}) {
+  const { resourceIds, ...rest } = data;
+  for (const resourceId of new Set(resourceIds)) {
+    await createAssignment({ ...rest, resourceId });
+  }
+}

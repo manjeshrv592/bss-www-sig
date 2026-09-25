@@ -43,7 +43,7 @@ export default async function Page(props: {
       </div>
 
       <FooterLineList lines={lines} inUse={inUse} />
-      <Pagination page={page} totalPages={totalPages} basePath="/footer-lines" />
+      <Pagination page={page} totalPages={totalPages} total={total} perPage={PER_PAGE} basePath="/footer-lines" />
     </div>
   );
 }

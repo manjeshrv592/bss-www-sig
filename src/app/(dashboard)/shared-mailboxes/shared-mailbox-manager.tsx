@@ -11,13 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import { Plus, Trash2, Loader2, Mailbox, UserPlus, X, Lightbulb, ShieldCheck, KeyRound, AlertTriangle } from "lucide-react";
 import {
   setSharedMailbox,
@@ -68,6 +62,11 @@ export function SharedMailboxManager({
   // wrong flag silently changes whose signature goes out, so an admin confirms.
   const suggested = candidates.filter((u) => u.looksShared);
   const rest = candidates.filter((u) => !u.looksShared);
+  // Likely-shared addresses first, then everyone else.
+  const addressOptions: ComboboxOption[] = [
+    ...suggested.map((u) => ({ value: u.id, label: u.email, hint: "— likely shared" })),
+    ...rest.map((u) => ({ value: u.id, label: u.email })),
+  ];
 
   return (
     <>
@@ -91,23 +90,15 @@ export function SharedMailboxManager({
               </p>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Address</label>
-                <Select value={newMailboxId} onValueChange={setNewMailboxId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select an address..." />
-                  </SelectTrigger>
-                  <SelectContent position="popper">
-                    {suggested.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.email} — likely shared
-                      </SelectItem>
-                    ))}
-                    {rest.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Combobox
+                  className="w-full"
+                  value={newMailboxId}
+                  onValueChange={setNewMailboxId}
+                  options={addressOptions}
+                  placeholder="Select an address..."
+                  searchPlaceholder="Search by email..."
+                  emptyText="No matching address."
+                />
               </div>
               <div className="flex justify-end gap-2">
                 <Button
@@ -295,23 +286,21 @@ export function SharedMailboxManager({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Select
+                    <Combobox
+                      className="w-full max-w-xs"
                       value={memberDraft[mb.id] ?? ""}
                       onValueChange={(v) =>
                         setMemberDraft((d) => ({ ...d, [mb.id]: v }))
                       }
-                    >
-                      <SelectTrigger className="w-full max-w-xs">
-                        <SelectValue placeholder="Add a member..." />
-                      </SelectTrigger>
-                      <SelectContent position="popper">
-                        {addable.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.name} ({u.email})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      options={addable.map((u) => ({
+                        value: u.id,
+                        label: u.name,
+                        hint: u.email,
+                      }))}
+                      placeholder="Add a member..."
+                      searchPlaceholder="Search by name or email..."
+                      emptyText="No matching person."
+                    />
                     <Button
                       size="sm"
                       variant="outline"

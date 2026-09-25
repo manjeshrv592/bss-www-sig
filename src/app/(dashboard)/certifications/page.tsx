@@ -43,7 +43,7 @@ export default async function Page(props: {
       </div>
 
       <CertificationList certifications={rows} inUse={inUse} offset={offset} total={total} />
-      <Pagination page={page} totalPages={totalPages} basePath="/certifications" />
+      <Pagination page={page} totalPages={totalPages} total={total} perPage={PER_PAGE} basePath="/certifications" />
     </div>
   );
 }
