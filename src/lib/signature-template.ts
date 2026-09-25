@@ -165,7 +165,7 @@ export function generateSignatureHtml(
       )
       .join("");
     disclaimerHtml = `
-    <table cellpadding="0" cellspacing="0" border="0" width="500" style="width: 500px; table-layout: fixed;">
+    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="width: 100%; table-layout: fixed;">
       <tr>
         <td height="15" style="font-size: 1px; line-height: 1px; mso-line-height-rule: exactly;">&nbsp;</td>
       </tr>
@@ -215,7 +215,11 @@ export function generateSignatureHtml(
 </head>
 <body style="margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <div id="bss-signature">
-  <table cellpadding="0" cellspacing="0" border="0" width="500" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #1f2937; width: 500px;">
+  <!-- Signature block (everything except the disclaimer). width="500" acts as a minimum: an auto-layout table grows past it when a cell can't wrap (the nowrap job title), and every section below is width 100% so they all follow the block's real width. min-width is not used because classic Outlook (Word renderer) ignores it on div and table. -->
+  <table cellpadding="0" cellspacing="0" border="0" width="500" style="width: 500px;">
+  <tr>
+  <td style="padding: 0;">
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #1f2937; width: 100%;">
     <tr>
       <!-- Left Column: Name, Designation -->
       <td style="vertical-align: top; padding-right: 30px;">
@@ -229,8 +233,8 @@ export function generateSignatureHtml(
 
           <!-- Designation -->
           <tr>
-            <td style="padding-bottom: 14px;">
-              <span style="font-size: 15px; font-weight: 600; color: #374151; display: block;">${designation}</span>
+            <td nowrap="nowrap" style="padding-bottom: 14px; white-space: nowrap;">
+              <span style="font-size: 15px; font-weight: 600; color: #374151; display: block; white-space: nowrap;">${designation}</span>
             </td>
           </tr>
 
@@ -252,7 +256,7 @@ export function generateSignatureHtml(
           ${officeName ? `
           <!-- Office name (right column, below logo) -->
           <tr>
-            <td style="padding-bottom: 10px; text-align: right;">
+            <td style="padding-bottom: 2px; text-align: right;">
               <a href="${website}" target="_blank" style="font-size: 14px; font-weight: 700; color: #2563eb; text-decoration: none; display: block; white-space: nowrap;">${escapeHtml(officeName)}</a>
             </td>
           </tr>
@@ -261,8 +265,8 @@ export function generateSignatureHtml(
           ${hasAddress ? `
           <!-- Address -->
           <tr>
-            <td style="padding-bottom: 4px; text-align: right;">
-              <span style="font-size: 13px; color: #1f2937; line-height: 1.5;">
+            <td nowrap="nowrap" style="padding-bottom: 4px; text-align: right; white-space: nowrap;">
+              <span style="font-size: 13px; color: #1f2937; line-height: 1.5; white-space: nowrap;">
                 ${addressHtml}
               </span>
             </td>
@@ -309,9 +313,9 @@ export function generateSignatureHtml(
     </tr>
   </table>
 
-  <!-- Certifications (fixed signature width; logos wrap to next row when they overflow) -->
+  <!-- Certifications (block width; logos wrap to next row when they overflow) -->
   ${activeCerts.length > 0 ? `
-  <table cellpadding="0" cellspacing="0" border="0" width="500" style="margin-top: 15px; width: 500px; table-layout: fixed;">
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 15px; width: 100%; table-layout: fixed;">
     <tr>
       <td align="right" style="text-align: right; line-height: 0; font-size: 0;">
         ${certificationsHtml}
@@ -322,7 +326,7 @@ export function generateSignatureHtml(
   ${bannersHtml}
 
   <!-- Footer: width attribute + align attribute used for classic Outlook (Word renderer ignores width:100% CSS) -->
-  <table cellpadding="0" cellspacing="0" border="0" width="500" style="margin-top: 15px; width: 500px;">
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 15px; width: 100%;">
     <tr>
       <td style="font-size: 14px; color: #2563eb; font-weight: 600; white-space: nowrap;">
         ${footerLeftHtml}
@@ -333,6 +337,9 @@ export function generateSignatureHtml(
       </td>
       ` : ""}
     </tr>
+  </table>
+  </td>
+  </tr>
   </table>
   ${disclaimerHtml}
   </div>
