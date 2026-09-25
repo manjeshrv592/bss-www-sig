@@ -49,12 +49,18 @@ export function DisclaimerList({
   disclaimers,
   offset,
   total,
+  positions,
+  query = "",
 }: {
   /** Resource id -> how many rules and overrides reference it. */
   inUse: Record<string, { rules: number; overrides: number; total: number }>;
   disclaimers: Disclaimer[];
   offset: number;
   total: number;
+  /** Set while searching: each row's place in the full, unfiltered ordering. */
+  positions?: Record<string, number>;
+  /** The active search, for the empty state. */
+  query?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<Disclaimer | null>(null);
@@ -199,9 +205,11 @@ export function DisclaimerList({
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <FileText className="h-10 w-10 text-muted-foreground/40 mb-3" />
-            <p className="text-sm font-medium">No disclaimers yet</p>
+            <p className="text-sm font-medium">
+              {query ? `No disclaimers match “${query}”` : "No disclaimers yet"}
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Add your first disclaimer.
+              {query ? "Try a different search term." : "Add your first disclaimer."}
             </p>
           </CardContent>
         </Card>
@@ -253,10 +261,11 @@ export function DisclaimerList({
                       />
                     </td>
                     <OrderCell
-                      index={offset + index}
+                      index={positions?.[item.id] ?? offset + index}
                       total={total}
                       handleProps={getHandleProps(index, item.name)}
                       onMoveTo={(to) => moveTo(item.id, to)}
+                      readOnly={Boolean(query)}
                     />
                     <td className="px-4 py-3 font-medium">{item.name}</td>
                     <td className="px-4 py-3 max-w-[400px]">

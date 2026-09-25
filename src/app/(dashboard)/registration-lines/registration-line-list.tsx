@@ -44,10 +44,13 @@ interface RegistrationLine {
 export function RegistrationLineList({
   lines,
   inUse,
+  query = "",
 }: {
   lines: RegistrationLine[];
   /** Resource id -> how many rules and overrides reference it. */
   inUse: Record<string, { rules: number; overrides: number; total: number }>;
+  /** The active search, for the empty state. */
+  query?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<RegistrationLine | null>(null);
@@ -190,9 +193,11 @@ export function RegistrationLineList({
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <FileSignature className="h-10 w-10 text-muted-foreground/40 mb-3" />
-            <p className="text-sm font-medium">No registration lines yet</p>
+            <p className="text-sm font-medium">
+              {query ? `No registration lines match “${query}”` : "No registration lines yet"}
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Add one, then assign it by country in Assignments.
+              {query ? "Try a different search term." : "Add one, then assign it by country in Assignments."}
             </p>
           </CardContent>
         </Card>

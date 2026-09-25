@@ -49,12 +49,18 @@ export function CertificationList({
   certifications,
   offset,
   total,
+  positions,
+  query = "",
 }: {
   /** Resource id -> how many rules and overrides reference it. */
   inUse: Record<string, { rules: number; overrides: number; total: number }>;
   certifications: Certification[];
   offset: number;
   total: number;
+  /** Set while searching: each row's place in the full, unfiltered ordering. */
+  positions?: Record<string, number>;
+  /** The active search, for the empty state. */
+  query?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<Certification | null>(null);
@@ -205,9 +211,11 @@ export function CertificationList({
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <Award className="h-10 w-10 text-muted-foreground/40 mb-3" />
-            <p className="text-sm font-medium">No certifications yet</p>
+            <p className="text-sm font-medium">
+              {query ? `No certifications match “${query}”` : "No certifications yet"}
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Add your first certification badge.
+              {query ? "Try a different search term." : "Add your first certification badge."}
             </p>
           </CardContent>
         </Card>
@@ -260,10 +268,11 @@ export function CertificationList({
                       />
                     </td>
                     <OrderCell
-                      index={offset + index}
+                      index={positions?.[cert.id] ?? offset + index}
                       total={total}
                       handleProps={getHandleProps(index, cert.name)}
                       onMoveTo={(to) => moveTo(cert.id, to)}
+                      readOnly={Boolean(query)}
                     />
                     <td className="px-4 py-3">
                       {cert.image ? (

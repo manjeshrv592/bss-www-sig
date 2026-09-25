@@ -45,10 +45,13 @@ interface FooterLine {
 export function FooterLineList({
   lines,
   inUse,
+  query = "",
 }: {
   lines: FooterLine[];
   /** Resource id -> how many rules and overrides reference it. */
   inUse: Record<string, { rules: number; overrides: number; total: number }>;
+  /** The active search, for the empty state. */
+  query?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<FooterLine | null>(null);
@@ -211,9 +214,11 @@ export function FooterLineList({
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <PanelBottom className="h-10 w-10 text-muted-foreground/40 mb-3" />
-            <p className="text-sm font-medium">No footer lines yet</p>
+            <p className="text-sm font-medium">
+              {query ? `No footer lines match “${query}”` : "No footer lines yet"}
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Until one is assigned, signatures use the built-in default.
+              {query ? "Try a different search term." : "Until one is assigned, signatures use the built-in default."}
             </p>
           </CardContent>
         </Card>

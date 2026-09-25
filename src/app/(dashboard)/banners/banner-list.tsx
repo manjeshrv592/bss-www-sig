@@ -57,12 +57,18 @@ export function BannerList({
   banners,
   offset,
   total,
+  positions,
+  query = "",
 }: {
   /** Resource id -> how many rules and overrides reference it. */
   inUse: Record<string, { rules: number; overrides: number; total: number }>;
   banners: Banner[];
   offset: number;
   total: number;
+  /** Set while searching: each row's place in the full, unfiltered ordering. */
+  positions?: Record<string, number>;
+  /** The active search, for the empty state. */
+  query?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [editItem, setEditItem] = useState<Banner | null>(null);
@@ -266,9 +272,11 @@ export function BannerList({
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <ImageIcon className="h-10 w-10 text-muted-foreground/40 mb-3" />
-            <p className="text-sm font-medium">No banners yet</p>
+            <p className="text-sm font-medium">
+              {query ? `No banners match “${query}”` : "No banners yet"}
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Add your first promotional banner.
+              {query ? "Try a different search term." : "Add your first promotional banner."}
             </p>
           </CardContent>
         </Card>
@@ -322,10 +330,11 @@ export function BannerList({
                       />
                     </td>
                     <OrderCell
-                      index={offset + index}
+                      index={positions?.[banner.id] ?? offset + index}
                       total={total}
                       handleProps={getHandleProps(index, banner.name)}
                       onMoveTo={(to) => moveTo(banner.id, to)}
+                      readOnly={Boolean(query)}
                     />
                     <td className="px-4 py-3">
                       {banner.image ? (

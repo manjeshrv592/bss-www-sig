@@ -9,18 +9,24 @@ import { GripVertical } from "lucide-react";
  *
  * The number is editable because dragging can only reach rows on the current
  * page — typing a position is how a row moves to another page.
+ *
+ * `readOnly` shows the position but disables moving. Used while a search
+ * filters the list: a filtered page isn't a contiguous slice of the ordering,
+ * so drag/type targets would land on the wrong absolute position.
  */
 export function OrderCell({
   index,
   total,
   handleProps,
   onMoveTo,
+  readOnly = false,
 }: {
   /** Absolute 0-based index across the whole list. */
   index: number;
   total: number;
   handleProps: React.ComponentProps<"button">;
   onMoveTo: (toIndex: number) => void;
+  readOnly?: boolean;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   const shown = draft ?? String(index + 1);
@@ -39,8 +45,8 @@ export function OrderCell({
       <div className="flex items-center gap-1.5">
         <button
           type="button"
-          {...handleProps}
-          className="cursor-grab rounded text-muted-foreground/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+          {...(readOnly ? { disabled: true, title: "Clear the search to reorder" } : handleProps)}
+          className="cursor-grab rounded text-muted-foreground/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-muted-foreground/60"
         >
           <GripVertical className="h-4 w-4" />
         </button>
@@ -49,6 +55,7 @@ export function OrderCell({
           inputMode="numeric"
           aria-label={`Position ${index + 1} of ${total}. Type a number to move.`}
           value={shown}
+          readOnly={readOnly}
           onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, ""))}
           onFocus={(e) => e.currentTarget.select()}
           onBlur={commit}
