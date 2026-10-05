@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 // Keep this page out of search engines and crawlers.
 export const metadata: Metadata = {
@@ -102,12 +103,13 @@ export default async function RootLoginPage({
                 required
               />
             </div>
-            <button
+            <Button
               type="submit"
-              className="w-full flex items-center justify-center gap-3 rounded-md bg-[#2f2f2f] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#404040] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              size="lg"
+              className="w-full bg-[#2f2f2f] bg-none text-white shadow-none hover:bg-[#404040] hover:brightness-100"
             >
               Sign in
-            </button>
+            </Button>
           </form>
           <p className="text-center text-[11px] text-muted-foreground/70 pt-1">
             This page is not indexed. Authorized personnel only.
