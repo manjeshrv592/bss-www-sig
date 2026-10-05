@@ -111,8 +111,10 @@ export function generateSignatureHtml(
   if (activeCerts.length > 0) {
     certificationsHtml = activeCerts
       .map(
-        (cert) =>
-          `<img src="${cert.image}" alt="${cert.alt ?? cert.name}" width="50" style="display: inline-block; vertical-align: middle; width: 50px; height: auto; margin: 0 0 10px 14px;" />`
+        // No left margin on the first logo: it sits at the row's left edge, so
+        // 14px there only costs room -- without it 8 logos fit in 500px (498px).
+        (cert, i) =>
+          `<img src="${cert.image}" alt="${cert.alt ?? cert.name}" width="50" style="display: inline-block; vertical-align: middle; width: 50px; height: auto; margin: 0 0 10px ${i === 0 ? 0 : 14}px;" />`
       )
       .join("");
   }
