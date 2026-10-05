@@ -103,7 +103,7 @@ export function generateSignatureHtml(
   // wrap, and flexbox/flex-wrap isn't supported in classic Outlook (Word
   // renderer), so inline images are the email-safe way to get reflow.
   //
-  // Width is fixed at 75px with height auto, so every logo scales to the same
+  // Width is fixed at 50px with height auto, so every logo scales to the same
   // width regardless of the uploaded file's native size. Only spacing and
   // baseline alignment are otherwise styled here.
   let certificationsHtml = "";
@@ -112,7 +112,7 @@ export function generateSignatureHtml(
     certificationsHtml = activeCerts
       .map(
         (cert) =>
-          `<img src="${cert.image}" alt="${cert.alt ?? cert.name}" width="75" style="display: inline-block; vertical-align: middle; width: 75px; height: auto; margin: 0 0 10px 14px;" />`
+          `<img src="${cert.image}" alt="${cert.alt ?? cert.name}" width="50" style="display: inline-block; vertical-align: middle; width: 50px; height: auto; margin: 0 0 10px 14px;" />`
       )
       .join("");
   }
